@@ -4,21 +4,27 @@ import numpy as np
 
 class PyCutterProcessing:
 
+    """
+    Class for processing raw MS-DIAL alignment export for metabolomics data curation readiness
+    """
+
     def __init__(self):
 
         self.deleted = 0
         self.log = []
 
 
-    def process_alignment(self, raw_alignment_file, metadata_file):
+    def process_alignment(self, raw_alignment_file, metadata_file=''):
 
         """
-        Processes MS-DIAL alignment file for metabolomics data curation readiness
+        Step 1: processes raw MS-DIAL alignment file for metabolomics data curation readiness
         """
+
+        self.log = []
+        self.write_to_log('Initiated PyCutter processing for ' + os.path.basename(raw_alignment_file))
 
         # Convert files into pandas DataFrames
         df = pd.read_table(raw_alignment_file, header=None, index_col=False)
-        self.write_to_log('Initiated PyCutter processing for ' + os.path.basename(raw_alignment_file))
 
         # Define 5th row as column header
         df.columns = df.iloc[4]
@@ -80,8 +86,7 @@ class PyCutterProcessing:
         f = 0.2 * df['Fragment presence %'].astype(float)
         df['Weighted MS2 Score'] = r + d + f
 
-        self.write_to_log(
-            'Added columns: MSI, deltaRT, MS2Score, Weighted MS2Score, SAmax/BKavg, Percent CV, Sample Average, Sample Max')
+        self.write_to_log('Added columns: MSI, deltaRT, MS2Score, Weighted MS2Score, SAmax/BKavg, Percent CV, Sample Average, Sample Max')
 
         # Rearrange columns
         columns_to_rearrange = ["MSI", "Alignment ID", "Average Rt(min)", "Average Mz", "Reference RT", "deltaRT",
@@ -155,8 +160,7 @@ class PyCutterProcessing:
 
         unknowned_list['Alignment ID'] = unknowned_list['Alignment ID'].astype(str)
         unknowned_list = unknowned_list[['Alignment ID', 'Metabolite name']].values.tolist()
-        self.write_to_log('Marking ' + str(
-            len(unknowned_list)) + ' annotated features with MS2Score < 70 and no Reference RT as "Unknown"...')
+        self.write_to_log('Marking ' + str(len(unknowned_list)) + ' annotated features with MS2Score < 70 and no Reference RT as "Unknown"...')
         self.write_to_log('\n'.join(' '.join(metabo) for metabo in unknowned_list))
 
         # Mark annotated features with MS2Score < 70 and no Reference RT as "Unknown"
@@ -172,8 +176,7 @@ class PyCutterProcessing:
 
         unknowned_list['Alignment ID'] = unknowned_list['Alignment ID'].astype(str)
         unknowned_list = unknowned_list[['Alignment ID', 'Metabolite name']].values.tolist()
-        self.write_to_log('Marking ' + str(
-            len(unknowned_list)) + ' annotated features with MS2Score < 70 and no RT match as "Unknown"...')
+        self.write_to_log('Marking ' + str(len(unknowned_list)) + ' annotated features with MS2Score < 70 and no RT match as "Unknown"...')
         self.write_to_log('\n'.join(' '.join(metabo) for metabo in unknowned_list))
 
         # Mark annotated features with MS2Score < 70 and no RT match as "Unknown"
@@ -190,8 +193,7 @@ class PyCutterProcessing:
         unknowned_list['Alignment ID'] = unknowned_list['Alignment ID'].astype(str)
         unknowned_list = unknowned_list[['Alignment ID', 'Metabolite name']].values.tolist()
 
-        self.write_to_log(
-            'Marking ' + str(len(unknowned_list)) + ' annotated features with MS2Score < 55 and RT match as "Unknown"...')
+        self.write_to_log('Marking ' + str(len(unknowned_list)) + ' annotated features with MS2Score < 55 and RT match as "Unknown"...')
         self.write_to_log('\n'.join(' '.join(metabo) for metabo in unknowned_list))
 
         # Mark annotated features with MS2Score < 55 and RT match as "Unknown"
@@ -320,42 +322,25 @@ class PyCutterProcessing:
         df = self.insert_row(4, df, list(df.columns))
         df2 = self.insert_row(4, df2, list(df2.columns))
 
-        expected = len(df) - self.deleted
-
         # Final save of formatted spreadsheet
+        filename = 'Project_ID.tsv'
         input_file_name = os.path.basename(raw_alignment_file)
         save_directory = raw_alignment_file.replace(input_file_name, '')
+        df2.to_csv(save_directory + filename, sep='\t', header=False, index=False)
 
-        # TODO – Name the alignment file using project ID
-        filename = 'Project_ID.tsv'
-
-        # writer = pd.ExcelWriter(save_directory + filename,
-        #                         engine='xlsxwriter',
-        #                         engine_kwargs={'options': {'strings_to_numbers': True}})
-
-        # df.to_excel(writer, sheet_name='Raw', header=False, index=False)
-
+        # Final log updates
+        expected = len(df) - self.deleted
         self.write_to_log('Raw sheet size: ' + str(len(df)))
-
-        #df2.to_excel(writer, sheet_name='Reduced', header=False, index=False)
-        df2.to_csv(save_directory+filename,sep='\t',header=False,index=False)
-
         self.write_to_log('Reduced sheet size: ' + str(len(df2)))
         self.write_to_log('Expected Reduced sheet size: ' + str(expected))
-
-        #writer.save()
         self.write_to_log('Processing complete')
+        step_one_log = self.log.copy()
 
-        # # Generate post-processing log
-        # with open(save_directory + filename.replace('.xlsx', ' ') + 'Log.txt', 'w', encoding='utf-8') as logfile:
-
-        #     for line in self.log:
-        #         logfile.write(line)
-        #         logfile.write('\n')
-        #         logfile.write('\n')
-
-        # self.open_folder(path=save_directory)
-        return df2
+        return {
+            "Raw": df,
+            "Reduced": df2,
+            "Log": step_one_log
+        }
 
 
     def write_to_log(self, text):
@@ -366,20 +351,6 @@ class PyCutterProcessing:
 
         current_time = time.strftime("%H:%M:%S")
         self.log.append(current_time + ' – ' + text)
-
-
-    def open_folder(self, path):
-
-        """
-        Opens folder containing alignment/combined file after processing
-        """
-
-        if sys.platform == 'darwin':
-            subprocess.check_call(['open', '--', path])
-        elif sys.platform == 'linux2':
-            subprocess.check_call(['gnome-open', '--', path])
-        elif sys.platform == 'win32':
-            subprocess.run(['explorer', os.path.realpath(path)])
 
 
     def movecol(self, df, cols_to_move, ref_col='', place='After'):
@@ -429,8 +400,11 @@ class PyCutterProcessing:
 
 # Use this to run a simple test of the script
 if __name__ == "__main__":
+
     pycutter = PyCutterProcessing()
-    pycutter.process_alignment(
-        "../../../data/BRYU005_pipeline_test/step_0_raw_from_ms_dial/BRYU005_pos_alignment_raw.txt", 
-        ""
-    )
+    step_one_files = pycutter.process_alignment(
+        "../../../data/pipeline_test/step_0_raw_from_ms_dial/STQU002_pos_raw_alignment.txt")
+
+    df_raw = step_one_files["Raw"]
+    df_reduced = step_one_files["Reduced"]
+    processing_log = step_one_files["Log"]
