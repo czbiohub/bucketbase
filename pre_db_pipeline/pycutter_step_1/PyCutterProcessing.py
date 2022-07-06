@@ -431,6 +431,6 @@ class PyCutterProcessing:
 if __name__ == "__main__":
     pycutter = PyCutterProcessing()
     pycutter.process_alignment(
-        "../../../data/pipeline_test/step_0_raw_from_ms_dial/STQU002_pos_raw_alignment.txt", 
+        "../../../data/BRYU005_pipeline_test/step_0_raw_from_ms_dial/BRYU005_pos_alignment_raw.txt", 
         ""
     )
