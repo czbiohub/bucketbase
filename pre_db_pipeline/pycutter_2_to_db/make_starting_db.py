@@ -49,6 +49,7 @@ if __name__ =="__main__":
         '''
         CREATE TABLE bins(
             bin_id INTEGER PRIMARY KEY,
+            english_name TEXT,
             inchikey TEXT,
             adduct TEXT,
             group_id INTEGER,
@@ -69,7 +70,8 @@ if __name__ =="__main__":
             intensity_height REAL,
             spectrum TEXT,
             bin_id INTEGER,
-            member_of_consenus INTEGER,
+            adduct TEXT,
+            member_of_consensus INTEGER,
             run_id TEXT,
             FOREIGN KEY (bin_id)
                 REFERENCES bins (bin_id),
@@ -85,8 +87,8 @@ if __name__ =="__main__":
         '''
         CREATE TABLE runs(
             run_id TEXT PRIMARY KEY,
-            method_id,
-            sample_description_id,
+            method_id TEXT,
+            sample_des_id TEXT,
             run_type TEXT
         )
         '''

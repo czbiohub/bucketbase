@@ -23,6 +23,10 @@ def find_lowest_annotation(database_address):
     )
 
     temp_result=temp_cursor.fetchall()
+
+    connection.close()
+    engine.dispose()
+
     if len(temp_result)==0:
         return -1
     elif len(temp_result)==1:
@@ -89,6 +93,7 @@ def create_annotation_table_wrapper(individual_files_directory,mapping_panda,dat
     for i,temp_file in enumerate(file_list):
         # if i>5:
         #     continue
+        print(i)
         annotation_panda_upload_list.append(
             create_annotation_table_one_individual_file(individual_files_directory,temp_file,mapping_panda)
         )
@@ -157,7 +162,7 @@ def create_annotation_table_one_individual_file(individual_files_directory,temp_
     temp_annotation_upload_panda['run_id']=run_id
     temp_annotation_upload_panda['member_of_consensus']=0
     temp_annotation_upload_panda.drop(
-        ['alignment_id',run_id],
+        ['alignment_id','peak_id',run_id],
         inplace=True,
         axis='columns'
     )
@@ -182,8 +187,8 @@ if __name__=="__main__":
 
     mapping_file_address='../../../data/three_studies/alignment_individual_mappings/BRYU005_pos_mapping.txt'
     mapping_panda=pd.read_csv(mapping_file_address,sep='\t',skiprows=4)
-
     mapping_panda=clean_mapping_panda(mapping_panda,alignment_id_bin_id_panda)
  
     individual_files_directory='../../../data/three_studies/individual_sample_data_subset/unzipped/BRYU005_Bacterial_Supernatant/pos/'
-    create_annotation_table_wrapper(individual_files_directory,mapping_panda,database_address)
+    annotation_panda_for_upload=create_annotation_table_wrapper(individual_files_directory,mapping_panda,database_address)
+    print(annotation_panda_for_upload)

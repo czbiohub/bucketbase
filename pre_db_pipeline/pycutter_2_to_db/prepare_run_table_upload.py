@@ -57,6 +57,8 @@ def create_run_table_upload(alignment_panda):
     run_panda['method_id']='my_dummy_method_id'
     run_panda['sample_des_id']='my_dummy_sample_des_id'
 
+    return run_panda
+
 if __name__=="__main__":
     
     final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos.txt'

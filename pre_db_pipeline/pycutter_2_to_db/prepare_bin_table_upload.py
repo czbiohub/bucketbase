@@ -20,6 +20,10 @@ def find_lowest_bin(database_address):
     )
 
     temp_result=temp_cursor.fetchall()
+
+    connection.close()
+    engine.dispose()
+
     if len(temp_result)==0:
         return -1
     elif len(temp_result)==1:
