@@ -64,7 +64,7 @@ if __name__ =="__main__":
         '''
         CREATE TABLE annotations(
             annotation_id INTEGER PRIMARY KEY,
-            precursor_mass REAL,
+            precursor_mz REAL,
             retention_time REAL,
             intensity_height REAL,
             spectrum TEXT,

@@ -84,6 +84,8 @@ def create_bin_table_upload(alignment_panda,database_address):
     bin_panda['is_known']=is_known_list
     bin_panda['group_id']=group_id_list
 
+    return bin_panda
+
 
 
 if __name__=="__main__":
