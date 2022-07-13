@@ -2,6 +2,7 @@
 # import pandas as pd
 # import sqlalchemy
 import os
+import numpy as np
 
 from prepare_bin_table_upload import * #find_lowest_bin,create_bin_table_upload
 
@@ -91,8 +92,8 @@ def create_annotation_table_wrapper(individual_files_directory,mapping_panda,dat
 
     annotation_panda_upload_list=list()
     for i,temp_file in enumerate(file_list):
-        # if i>5:
-        #     continue
+        # if i>5 and i<255:
+            # continue
         print(i)
         annotation_panda_upload_list.append(
             create_annotation_table_one_individual_file(individual_files_directory,temp_file,mapping_panda)
@@ -110,6 +111,37 @@ def create_annotation_table_wrapper(individual_files_directory,mapping_panda,dat
     ))
 
     return annotation_upload_panda
+
+def normalize_spectrum(spectrum):
+    '''
+    divides each intensity by the  max of the intensities
+    '''
+    spectrum[1]=spectrum[1]/(spectrum[1].max())
+    return spectrum
+
+def parse_one_ms_dial_spectrum(spectrum_text):
+    '''
+    takes an ms/ms spectrum as a string and returns an array
+    '''
+    #print(spectrum_text)
+    #hold=input('hold')
+    mz_int_pair_list=spectrum_text.split(' ')
+    mz_list=[float(temp_pair.split(':')[0]) for temp_pair in mz_int_pair_list]
+    intensity_list=[float(temp_pair.split(':')[1]) for temp_pair in mz_int_pair_list]
+    
+    return np.array([
+        mz_list,
+        intensity_list
+    ])
+
+def convert_np_spectrum_to_text(spectrum_array):
+    '''
+    takes an ms/ms spectrum in our numpy array format and converts it to string
+    '''
+    string_rep=[
+        str(spectrum_array[0][i])+':'+str(spectrum_array[1][i]) for i in range(len(spectrum_array[0]))
+    ]
+    return ' '.join(string_rep)
 
 
 def create_annotation_table_one_individual_file(individual_files_directory,temp_file,mapping_panda):    
@@ -166,6 +198,27 @@ def create_annotation_table_one_individual_file(individual_files_directory,temp_
         inplace=True,
         axis='columns'
     )
+
+    #map, like apply, is not true vectorizaiton
+    #opted for map to avoid putting nan case handlers in called functions
+    #the idea is to normalize spectra then return them to text for upload
+    temp_annotation_upload_panda.loc[
+        temp_annotation_upload_panda['spectrum'].notna(),'spectrum'
+    ]=temp_annotation_upload_panda.loc[
+        temp_annotation_upload_panda['spectrum'].notna(),'spectrum'
+    ].apply(parse_one_ms_dial_spectrum)
+
+    temp_annotation_upload_panda.loc[
+        temp_annotation_upload_panda['spectrum'].notna(),'spectrum'
+    ]=temp_annotation_upload_panda.loc[
+        temp_annotation_upload_panda['spectrum'].notna(),'spectrum'
+    ].apply(normalize_spectrum)
+
+    temp_annotation_upload_panda.loc[
+        temp_annotation_upload_panda['spectrum'].notna(),'spectrum'
+    ]=temp_annotation_upload_panda.loc[
+        temp_annotation_upload_panda['spectrum'].notna(),'spectrum'
+    ].apply(convert_np_spectrum_to_text)
 
     return temp_annotation_upload_panda
 
