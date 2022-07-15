@@ -1,6 +1,6 @@
 import sqlalchemy
 
-def execute_query(database_address,query_string):
+def execute_query(database_address,query_string,returns_rows=True):
     '''
     execute some query/operation on our DB
     '''
@@ -11,12 +11,17 @@ def execute_query(database_address,query_string):
         query_string
     )
 
-    temp_result=temp_cursor.fetchall()
+    if returns_rows==True:
+        temp_result=temp_cursor.fetchall()
     
-    connection.close()
-    engine.dispose()
+        connection.close()
+        engine.dispose()
 
-    if len(temp_result)==0:
-        return -1
-    elif len(temp_result)>1:
-        return temp_result
+        if len(temp_result)==0:
+            return -1
+        elif len(temp_result)>1:
+            return temp_result
+
+    elif temp_cursor==False:
+        connection.close()
+        engine.dispose()
