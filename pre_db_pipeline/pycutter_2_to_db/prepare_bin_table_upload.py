@@ -82,11 +82,27 @@ def create_bin_table_upload(alignment_panda,database_address):
     group_id_list=[
         np.nan for x in range(len(bin_panda.index))
     ]
+    valid_for_autocuration_list=[
+        np.nan for x in range(len(bin_panda.index))
+    ]
+    consensus_rt=[
+        np.nan for x in range(len(bin_panda.index))
+    ]
+    consensus_mz=[
+        np.nan for x in range(len(bin_panda.index))
+    ]
+    consensus_spectrum=[
+        np.nan for x in range(len(bin_panda.index))
+    ]
 
     bin_panda['bin_id']=bin_id_list
     bin_panda['is_istd']=is_istd_list
     bin_panda['is_known']=is_known_list
     bin_panda['group_id']=group_id_list
+    bin_panda['valid_for_autocuration']=valid_for_autocuration_list
+    bin_panda['consensus_rt']=consensus_rt
+    bin_panda['consensus_mz']=consensus_mz
+    bin_panda['consensus_spectrum']=consensus_spectrum
 
     return bin_panda
 

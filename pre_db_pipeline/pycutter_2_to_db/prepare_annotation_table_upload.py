@@ -92,8 +92,8 @@ def create_annotation_table_wrapper(individual_files_directory,mapping_panda,dat
 
     annotation_panda_upload_list=list()
     for i,temp_file in enumerate(file_list):
-        # if i>5 and i<255:
-            # continue
+        if i>5 and i<255:
+            continue
         print(i)
         annotation_panda_upload_list.append(
             create_annotation_table_one_individual_file(individual_files_directory,temp_file,mapping_panda)
