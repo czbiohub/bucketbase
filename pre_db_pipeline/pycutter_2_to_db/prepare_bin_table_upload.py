@@ -94,6 +94,9 @@ def create_bin_table_upload(alignment_panda,database_address):
     consensus_spectrum=[
         np.nan for x in range(len(bin_panda.index))
     ]
+    mzrt_only=[
+        np.nan for x in range(len(bin_panda.index))
+    ]
 
     bin_panda['bin_id']=bin_id_list
     bin_panda['is_istd']=is_istd_list
@@ -103,6 +106,7 @@ def create_bin_table_upload(alignment_panda,database_address):
     bin_panda['consensus_rt']=consensus_rt
     bin_panda['consensus_mz']=consensus_mz
     bin_panda['consensus_spectrum']=consensus_spectrum
+    bin_panda['mzrt_only']=mzrt_only
 
     return bin_panda
 

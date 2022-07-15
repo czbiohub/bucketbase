@@ -60,7 +60,8 @@ if __name__ =="__main__":
             valid_for_autocuration INTEGER,
             consensus_rt REAL,
             consensus_mz REAL,
-            consensus_spectrum TEXT
+            consensus_spectrum TEXT,
+            mzrt_only INTEGER
         )
         '''
     )
