@@ -6,6 +6,8 @@ from utils import parse_text_spectra_return_pairs
 import spectral_entropy
 from scipy.spatial import distance
 from scipy.cluster import hierarchy
+from collections import Counter
+from scipy.stats import entropy
 
 def select_spectra_for_bin(database_address,bin_id):
     query=f'''
@@ -18,27 +20,6 @@ def select_spectra_for_bin(database_address,bin_id):
     '''
     return [element[0] for element in execute_query(database_address,query)]
 
-def select_rts_for_bin(database_address,bin_id):
-    query=f'''
-    select retention_time 
-    from annotations
-    inner join
-    runs
-    on annotations.run_id=runs.run_id
-    where (annotations.bin_id={bin_id}) and (annotations.retention_time is not null) and (runs.run_type='Sample')
-    '''
-    return [element[0] for element in execute_query(database_address,query)]
-
-def select_mzs_for_bin(database_address,bin_id):
-    query=f'''
-    select precursor_mz 
-    from annotations
-    inner join
-    runs
-    on annotations.run_id=runs.run_id
-    where (annotations.bin_id={bin_id}) and (annotations.precursor_mz is not null) and (runs.run_type='Sample')
-    '''
-    return [element[0] for element in execute_query(database_address,query)]
 
 def make_distance_matrix(spectra,similarity_metric,ms2_tolerance):
     '''
@@ -58,7 +39,7 @@ def make_distance_matrix(spectra,similarity_metric,ms2_tolerance):
                     spectra[i], spectra[j], 
                     method='dot_product',
                     ms2_da=ms2_tolerance,
-                    need_clean_spectra=True,
+                    need_clean_spectra=False,
                 )    
     
     similarity_matrix=np.triu(similarity_matrix)
@@ -98,9 +79,87 @@ def perform_hierarchical_clustering_routine(spectra,similarity_metric,ms2_tolera
 
     print(cluster_identities)
     hold=input('cluster identities')
+    return cluster_identities
 
+def get_cluster_membership_ordering(cluster_assignments):
+    '''
+    '''
+    total_number_of_elements=len(cluster_assignments)
+    
+    cluster_counts=Counter(cluster_assignments)
+    cluster_counts=[(key,cluster_counts[key]) for key in cluster_counts]
+    cluster_counts_ordered_by_population=[
+        x for x in sorted(cluster_counts, key=lambda pair: pair[1],reverse=True)
+    ]
+    
+    clusters_ordered_by_population=[temp[0] for temp in cluster_counts_ordered_by_population]
 
+    biggest_percent=cluster_counts_ordered_by_population[0][1]/total_number_of_elements
 
+    return clusters_ordered_by_population,biggest_percent
+
+def get_mz_range_of_bin_spectra(temp_spectra_paired):
+    '''
+    
+    '''
+    temp_spectra_parallel=[np.stack(temp_spectrum,axis=1) for temp_spectrum in temp_spectra_paired]
+    all_mz_list=[spectrum[0] for spectrum in temp_spectra_parallel]
+    all_mz=np.concatenate(all_mz_list,dtype=object)
+    return all_mz.max()-all_mz.min()
+
+def get_cleaned_spectra(temp_spectra_paired,noise_level,ms2_tolerance):
+    '''
+    '''
+    cleaned_spectra=[spectral_entropy.tools.clean_spectrum(
+                        temp_spectrum,
+                        noise_removal=noise_level,
+                        ms2_da=ms2_tolerance
+                    ) for temp_spectrum in temp_spectra_paired]
+    return cleaned_spectra
+
+def get_bin_entropy(temp_spectra_paired,use_ceiling,ms2_tolerance):
+    '''
+    first portion is same strategy as generate_consensus_spectrum
+    the second half is from find_average_mz_and_intensity
+    
+    the strategy, unlike making a consensus spectrum, is that we sum a bin and then normlize by count
+
+    if use_ceiling is true then the strategy doesnt matter
+    '''
+    
+    spectra=[np.stack(temp_spectrum,axis=1) for temp_spectrum in temp_spectra_paired]
+    spectrum_count=len(spectra)
+    
+    all_mz_list=[spectrum[0] for spectrum in spectra]
+    all_intensity_list=[spectrum[1] for spectrum in spectra]
+    
+    all_mz=np.concatenate(all_mz_list,dtype=object)
+    all_intensity=np.concatenate(all_intensity_list,dtype=object)
+    
+    bins=np.arange(all_mz.min(),
+                   all_mz.max()+ms2_tolerance,
+                  (all_mz.max()-all_mz.min())/100
+                  )
+    
+    bin_identities=np.digitize(
+        all_mz,
+        bins
+    ) 
+
+    output_intensity_list=list()
+    for i in range(len(bins)):
+        interesting_indexes=[
+            j for j, element in enumerate(bin_identities) if (element==i)
+        ]
+        interesting_intensities=all_intensity[interesting_indexes]
+        ####output_intensity_list.append(interesting_intensities.mean())
+        output_intensity_list.append((interesting_intensities.sum())/spectrum_count)
+
+    output_intensity_list=np.nan_to_num(output_intensity_list)
+    if use_ceiling==False:
+        return entropy(output_intensity_list)
+    elif use_ceiling==True:
+        return entropy(np.ceil(output_intensity_list))
 
 def valid_for_autocuration_test_wrapper(
     database_address,
@@ -109,13 +168,20 @@ def valid_for_autocuration_test_wrapper(
     ms2_tolerance,
     noise_level,
     mutual_distance_for_cluster,
+    use_ceiling,
     max_entropy_parameter,
     min_mz_range_parameter,
-    largest_cluster_membership_parameter,
+    largest_cluster_membership_parameter_percent,
+    bin_spectra_count_minimum_parameter,
     consensus_spectrum_routine_parameters
 ):
 
-    print(bin_list)
+    result_dict=[
+        'bin_id':[],
+        'valid_for_autocuration':[],
+        'consensus_spectra':[]
+    ]
+
     for temp_bin in bin_list:
         
         #note that mz and rt are decided whether or not there is an associated spectrum for 
@@ -127,18 +193,66 @@ def valid_for_autocuration_test_wrapper(
         #characterized based on samples
         temp_spectra_text=select_spectra_for_bin(database_address,temp_bin)
         print(len(temp_spectra_text))
-        temp_rts=select_rts_for_bin(database_address,temp_bin)
-        print(len(temp_rts))
-        temp_mzs=select_mzs_for_bin(database_address,temp_bin)
-        print(len(temp_mzs))
-        
-        
+
         #there was a problem in that certain modules expect spectra as mz/rt pairs and some (the ones i wrote)
         #expect parallel lists. fixing this would be an easy way to reduce code complexity
         #but the main goal for the moment is a working version by next week
         temp_spectra_paired=parse_text_spectra_return_pairs(temp_spectra_text)
-        print(temp_spectra_paired)
-        cluster_assignments=perform_hierarchical_clustering_routine(temp_spectra_paired,similarity_metric,ms2_tolerance,mutual_distance_for_cluster)
+        #we need to clean to make sure that subsequent stuff is homogenous
+        temp_spectra_paired_cleaned=get_cleaned_spectra(temp_spectra_paired,noise_level,ms2_tolerance)
         
-        hold=input('hold')
+        #now, the general logic is to perform a series of tests
+        #the tests are all kind of different. at each place, if a test is failed, the procedure is the same.
+        #get the consensus spectrum for each cluster and set the auto_curate_valid to False
+        #the tests (order matters, for example, it doesnt make sense to do entropy test if mz range is very small
+        #1) membership percent of largest cluster
+        #2) total members of cluster
+        #3) spread of mz
+        #4) entropy
 
+        #1)
+        #get the cluster assignments
+        cluster_assignments=perform_hierarchical_clustering_routine(temp_spectra_paired_cleaned,similarity_metric,ms2_tolerance,mutual_distance_for_cluster)
+        #count membership and get cluster percent
+        cluster_assignments_sorted_by_membership,biggest_cluster_percent=get_cluster_membership_ordering(cluster_assignments)       
+        if biggest_cluster_percent<largest_cluster_membership_parameter:
+            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
+            result_dict['bin_id'].append(bin_id)
+            result_dict['valid_for_autocuration'].append(0)
+            result_dict['consensus_spectra'].append(consensus_spectra_text)
+            continue
+
+        #2)
+        if len(cluster_assignments)<bin_spectra_count_minimum_parameter:
+            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
+            result_dict['bin_id'].append(bin_id)
+            result_dict['valid_for_autocuration'].append(0)
+            result_dict['consensus_spectra'].append(consensus_spectra_text)       
+            continue    
+
+        #3
+        mz_range=get_mz_range_of_bin_spectra(temp_spectra_paired_cleaned)
+        if mz_range<min_mz_range_parameter:
+            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
+            result_dict['bin_id'].append(bin_id)
+            #Note that a fail here still means we curate with it
+            result_dict['valid_for_autocuration'].append(1)
+            result_dict['consensus_spectra'].append(consensus_spectra_text)       
+            continue    
+
+        #4
+        bin_entropy=get_bin_entropy(temp_spectra_paired_cleaned,False,ms2_tolerance)
+        if bin_entropy>max_entropy_parameter:
+            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
+            result_dict['bin_id'].append(bin_id)
+            result_dict['valid_for_autocuration'].append(0)
+            result_dict['consensus_spectra'].append(consensus_spectra_text)       
+            continue  
+        elif bin_entropy<max_entropy_parameter:
+            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
+            result_dict['bin_id'].append(bin_id)
+            result_dict['valid_for_autocuration'].append(1)
+            result_dict['consensus_spectra'].append(consensus_spectra_text)       
+            continue  
+
+    #after going through all bins, we convert to panda and return
