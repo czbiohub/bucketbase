@@ -8,6 +8,7 @@ from scipy.spatial import distance
 from scipy.cluster import hierarchy
 from collections import Counter
 from scipy.stats import entropy
+from generate_consensus_spectra import *
 
 def select_spectra_for_bin(database_address,bin_id):
     query=f'''
@@ -77,8 +78,8 @@ def perform_hierarchical_clustering_routine(spectra,similarity_metric,ms2_tolera
         criterion='distance',
     )
 
-    print(cluster_identities)
-    hold=input('cluster identities')
+    #print(cluster_identities)
+    #hold=input('cluster identities')
     return cluster_identities
 
 def get_cluster_membership_ordering(cluster_assignments):
@@ -157,9 +158,9 @@ def get_bin_entropy(temp_spectra_paired,use_ceiling,ms2_tolerance):
 
     output_intensity_list=np.nan_to_num(output_intensity_list)
     if use_ceiling==False:
-        return entropy(output_intensity_list)
+        return np.exp(entropy(output_intensity_list))
     elif use_ceiling==True:
-        return entropy(np.ceil(output_intensity_list))
+        return np.exp(entropy(np.ceil(output_intensity_list)))
 
 def valid_for_autocuration_test_wrapper(
     database_address,
@@ -173,17 +174,21 @@ def valid_for_autocuration_test_wrapper(
     min_mz_range_parameter,
     largest_cluster_membership_parameter_percent,
     bin_spectra_count_minimum_parameter,
-    consensus_spectrum_routine_parameters
+    minimum_percent_present,
+    bin_space_tolerance
 ):
 
-    result_dict=[
+    result_dict={
         'bin_id':[],
         'valid_for_autocuration':[],
         'consensus_spectra':[]
-    ]
+    }
 
     for temp_bin in bin_list:
-        
+        print(result_dict)
+        hold=input('hold')
+
+
         #note that mz and rt are decided whether or not there is an associated spectrum for 
         #that individual annotation
         #however, it will not be equal to the number of runs for that study
@@ -215,17 +220,31 @@ def valid_for_autocuration_test_wrapper(
         cluster_assignments=perform_hierarchical_clustering_routine(temp_spectra_paired_cleaned,similarity_metric,ms2_tolerance,mutual_distance_for_cluster)
         #count membership and get cluster percent
         cluster_assignments_sorted_by_membership,biggest_cluster_percent=get_cluster_membership_ordering(cluster_assignments)       
-        if biggest_cluster_percent<largest_cluster_membership_parameter:
-            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
-            result_dict['bin_id'].append(bin_id)
+        if biggest_cluster_percent<largest_cluster_membership_parameter_percent:
+            consensus_spectra_text=generate_consensus_spectra_text_wrapper(
+                temp_spectra_paired_cleaned,
+                cluster_assignments,
+                cluster_assignments_sorted_by_membership,
+                ms2_tolerance,
+                minimum_percent_present,
+                bin_space_tolerance
+            )
+            result_dict['bin_id'].append(temp_bin)
             result_dict['valid_for_autocuration'].append(0)
             result_dict['consensus_spectra'].append(consensus_spectra_text)
             continue
 
         #2)
         if len(cluster_assignments)<bin_spectra_count_minimum_parameter:
-            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
-            result_dict['bin_id'].append(bin_id)
+            consensus_spectra_text=generate_consensus_spectra_text_wrapper(
+                temp_spectra_paired_cleaned,
+                cluster_assignments,
+                cluster_assignments_sorted_by_membership,
+                ms2_tolerance,
+                minimum_percent_present,
+                bin_space_tolerance
+            )
+            result_dict['bin_id'].append(temp_bin)
             result_dict['valid_for_autocuration'].append(0)
             result_dict['consensus_spectra'].append(consensus_spectra_text)       
             continue    
@@ -233,8 +252,15 @@ def valid_for_autocuration_test_wrapper(
         #3
         mz_range=get_mz_range_of_bin_spectra(temp_spectra_paired_cleaned)
         if mz_range<min_mz_range_parameter:
-            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
-            result_dict['bin_id'].append(bin_id)
+            consensus_spectra_text=generate_consensus_spectra_text_wrapper(
+                temp_spectra_paired_cleaned,
+                cluster_assignments,
+                cluster_assignments_sorted_by_membership,
+                ms2_tolerance,
+                minimum_percent_present,
+                bin_space_tolerance
+            )
+            result_dict['bin_id'].append(temp_bin)
             #Note that a fail here still means we curate with it
             result_dict['valid_for_autocuration'].append(1)
             result_dict['consensus_spectra'].append(consensus_spectra_text)       
@@ -243,16 +269,32 @@ def valid_for_autocuration_test_wrapper(
         #4
         bin_entropy=get_bin_entropy(temp_spectra_paired_cleaned,False,ms2_tolerance)
         if bin_entropy>max_entropy_parameter:
-            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
-            result_dict['bin_id'].append(bin_id)
+            consensus_spectra_text=generate_consensus_spectra_text_wrapper(
+                temp_spectra_paired_cleaned,
+                cluster_assignments,
+                cluster_assignments_sorted_by_membership,
+                ms2_tolerance,
+                minimum_percent_present,
+                bin_space_tolerance
+            )
+            result_dict['bin_id'].append(temp_bin)
             result_dict['valid_for_autocuration'].append(0)
             result_dict['consensus_spectra'].append(consensus_spectra_text)       
             continue  
         elif bin_entropy<max_entropy_parameter:
-            consensus_spectra_text=generate_consensus_spectra_text(temp_spectra_paired_cleaned,cluster_assignments)
-            result_dict['bin_id'].append(bin_id)
+            consensus_spectra_text=generate_consensus_spectra_text_wrapper(
+                temp_spectra_paired_cleaned,
+                cluster_assignments,
+                cluster_assignments_sorted_by_membership,
+                ms2_tolerance,
+                minimum_percent_present,
+                bin_space_tolerance
+            )
+            result_dict['bin_id'].append(temp_bin)
             result_dict['valid_for_autocuration'].append(1)
             result_dict['consensus_spectra'].append(consensus_spectra_text)       
             continue  
+
+
 
     #after going through all bins, we convert to panda and return

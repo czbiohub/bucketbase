@@ -110,14 +110,14 @@ def guide_consensus_routine(database_address,spectrum_cutoff):
         0.03,
         0.2,
         True,
-        0,
-        0,
-        0,
-        0,
-        0
+        60,
+        0.5,
+        0.9,
+        20,
+        0.3,
+        3
     )
     ######################################################################################
-
 
 if __name__=="__main__":
     minimum_count_for_auto_curation_possible=20
