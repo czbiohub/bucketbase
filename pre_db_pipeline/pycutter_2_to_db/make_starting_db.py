@@ -56,7 +56,12 @@ if __name__ =="__main__":
             is_istd INTEGER,
             is_known INTEGER,
             comment TEXT,
-            polarity TEXT
+            polarity TEXT,
+            valid_for_autocuration INTEGER,
+            consensus_rt REAL,
+            consensus_mz REAL,
+            consensus_spectrum TEXT,
+            mzrt_only INTEGER
         )
         '''
     )
