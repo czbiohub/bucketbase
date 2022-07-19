@@ -74,8 +74,8 @@ def convert_paired_spectrum_to_text(spectrum_array):
     '''
     takes an ms/ms spectrum in our numpy array format and converts it to string
     '''
-    print(spectrum_array)
-    hold=input('spectrum_array')
+    #print(spectrum_array)
+    #hold=input('spectrum_array')
     string_rep=[
         str(spectrum_array[i][0])+':'+str(spectrum_array[i][1]) for i in range(len(spectrum_array))
     ]

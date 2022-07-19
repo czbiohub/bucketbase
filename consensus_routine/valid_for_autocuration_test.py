@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import sys
 sys.path.insert(0, '../utils/')
 from utils import execute_query
@@ -181,12 +182,12 @@ def valid_for_autocuration_test_wrapper(
     result_dict={
         'bin_id':[],
         'valid_for_autocuration':[],
-        'consensus_spectra':[]
+        'consensus_spectrum':[]
     }
 
     for temp_bin in bin_list:
-        print(result_dict)
-        hold=input('hold')
+        #print(result_dict)
+        #hold=input('hold')
 
 
         #note that mz and rt are decided whether or not there is an associated spectrum for 
@@ -231,7 +232,7 @@ def valid_for_autocuration_test_wrapper(
             )
             result_dict['bin_id'].append(temp_bin)
             result_dict['valid_for_autocuration'].append(0)
-            result_dict['consensus_spectra'].append(consensus_spectra_text)
+            result_dict['consensus_spectrum'].append(consensus_spectra_text)
             continue
 
         #2)
@@ -246,7 +247,7 @@ def valid_for_autocuration_test_wrapper(
             )
             result_dict['bin_id'].append(temp_bin)
             result_dict['valid_for_autocuration'].append(0)
-            result_dict['consensus_spectra'].append(consensus_spectra_text)       
+            result_dict['consensus_spectrum'].append(consensus_spectra_text)       
             continue    
 
         #3
@@ -263,7 +264,7 @@ def valid_for_autocuration_test_wrapper(
             result_dict['bin_id'].append(temp_bin)
             #Note that a fail here still means we curate with it
             result_dict['valid_for_autocuration'].append(1)
-            result_dict['consensus_spectra'].append(consensus_spectra_text)       
+            result_dict['consensus_spectrum'].append(consensus_spectra_text)       
             continue    
 
         #4
@@ -279,7 +280,7 @@ def valid_for_autocuration_test_wrapper(
             )
             result_dict['bin_id'].append(temp_bin)
             result_dict['valid_for_autocuration'].append(0)
-            result_dict['consensus_spectra'].append(consensus_spectra_text)       
+            result_dict['consensus_spectrum'].append(consensus_spectra_text)       
             continue  
         elif bin_entropy<max_entropy_parameter:
             consensus_spectra_text=generate_consensus_spectra_text_wrapper(
@@ -292,9 +293,10 @@ def valid_for_autocuration_test_wrapper(
             )
             result_dict['bin_id'].append(temp_bin)
             result_dict['valid_for_autocuration'].append(1)
-            result_dict['consensus_spectra'].append(consensus_spectra_text)       
+            result_dict['consensus_spectrum'].append(consensus_spectra_text)       
             continue  
 
 
 
     #after going through all bins, we convert to panda and return
+    return pd.DataFrame.from_dict(result_dict)
