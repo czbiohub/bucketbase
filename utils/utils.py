@@ -21,7 +21,7 @@ def execute_query(database_address,query_string,returns_rows=True):
 
         if len(temp_result)==0:
             return -1
-        elif len(temp_result)>1:
+        elif len(temp_result)>=1:
             return temp_result
 
     elif temp_cursor==False:

@@ -185,11 +185,13 @@ def valid_for_autocuration_test_wrapper(
         'consensus_spectrum':[]
     }
 
-    for temp_bin in bin_list:
+    for z,temp_bin in enumerate(bin_list):
         #print(result_dict)
         #hold=input('hold')
+        #if temp_bin !=42:
+        #    continue
 
-
+        print(f'bin number {temp_bin} iteration number {z}')
         #note that mz and rt are decided whether or not there is an associated spectrum for 
         #that individual annotation
         #however, it will not be equal to the number of runs for that study
@@ -198,7 +200,7 @@ def valid_for_autocuration_test_wrapper(
         #note that the annotaitons from blanks and qcs still go into the bin, but the bin is only
         #characterized based on samples
         temp_spectra_text=select_spectra_for_bin(database_address,temp_bin)
-        print(len(temp_spectra_text))
+        print(f'{len(temp_spectra_text)} spectra') #len(temp_spectra_text))
 
         #there was a problem in that certain modules expect spectra as mz/rt pairs and some (the ones i wrote)
         #expect parallel lists. fixing this would be an easy way to reduce code complexity
@@ -217,10 +219,15 @@ def valid_for_autocuration_test_wrapper(
         #4) entropy
 
         #1)
-        #get the cluster assignments
-        cluster_assignments=perform_hierarchical_clustering_routine(temp_spectra_paired_cleaned,similarity_metric,ms2_tolerance,mutual_distance_for_cluster)
-        #count membership and get cluster percent
-        cluster_assignments_sorted_by_membership,biggest_cluster_percent=get_cluster_membership_ordering(cluster_assignments)       
+        #get the cluster assignments. if there is only one spectrum, then cheese it and assign the cluster membership manually
+        if len(temp_spectra_paired_cleaned)==1:
+            cluster_assignments=np.array([1])
+            cluster_assignments_sorted_by_membership=np.array([1])
+            biggest_cluster_percent=1.0
+        else:
+            cluster_assignments=perform_hierarchical_clustering_routine(temp_spectra_paired_cleaned,similarity_metric,ms2_tolerance,mutual_distance_for_cluster)
+            #count membership and get cluster percent
+            cluster_assignments_sorted_by_membership,biggest_cluster_percent=get_cluster_membership_ordering(cluster_assignments)       
         if biggest_cluster_percent<largest_cluster_membership_parameter_percent:
             consensus_spectra_text=generate_consensus_spectra_text_wrapper(
                 temp_spectra_paired_cleaned,

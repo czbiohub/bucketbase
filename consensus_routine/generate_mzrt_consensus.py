@@ -40,7 +40,8 @@ def generate_mzrt_wrapper(
     }
 
 
-    for temp_bin in bin_list:
+    for z,temp_bin in enumerate(bin_list):
+        print(f'bin number {temp_bin} iteration number {z}')
         temp_mz_list=select_mzs_for_bin(database_address,temp_bin)
         temp_rt_list=select_rts_for_bin(database_address,temp_bin)
 

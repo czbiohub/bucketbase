@@ -678,8 +678,19 @@ if __name__ == "__main__":
 
     pycutter = PyCutterProcessing()
 
-    step_one_files = pycutter.process_alignment(
-        "../../../data/pipeline_test/step_0_raw_from_ms_dial/STQU002_pos_raw_alignment.txt")
+    #step_one_files = pycutter.process_alignment(
+    #    "../../../data/pipeline_test/step_0_raw_from_ms_dial/STQU002_pos_raw_alignment.txt")
+    step_one_files=pycutter.process_alignment(
+        '../../../data/BRYU005_pipeline_test/step_0_raw_from_ms_dial/BRYU005_pos_alignment_raw.txt',
+        '../../../data/BRYU005_pipeline_test/step_0_raw_from_ms_dial/BRYU005_seq_MetaData.csv'
+    )
+    step_one_files['Reduced'].to_csv(
+        f'../../../data/BRYU005_pipeline_test/step_1_post_pycutter/py_cutter_step_1_output.tsv',
+        sep='\t',
+        index=None,
+        header=None
+    )
+
 
     # Step 1 – Processing raw MS-DIAL alignment
     # step_one_files = pycutter.process_alignment("alignment.txt", "metadata.csv")
