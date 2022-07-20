@@ -47,8 +47,8 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
 
 
     if to_transient_for_pycutter_pipeline==True:
-        alignment_panda['bin_id']='temp'
-        alignment_panda['comment']='temp'
+        alignment_panda['bin_id']=np.nan
+        alignment_panda['comment']='junk comment'
         alignment_panda['polarity']=ion_mode
         column_swap_dict={
             'INCHIKEY':'inchikey',
@@ -64,15 +64,11 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
             'Polarity/Filename':'polarity'
         }
 
-
-
-
     alignment_panda.rename(
         mapper=column_swap_dict,
         inplace=True,
         axis='columns'
     )
-    
     
     #strip all whitespaces
     [alignment_panda[temp_col].apply(str.strip) for temp_col in alignment_panda.columns if alignment_panda[temp_col].dtype==str]
