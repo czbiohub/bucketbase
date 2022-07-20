@@ -3,7 +3,7 @@ import pandas as pd
 import sqlalchemy
 
 
-def create_run_table_upload(alignment_panda):
+def create_run_table_upload(alignment_panda,to_transient_for_pycutter_pipeline):
     '''
     steps: 
     1) we pre-plan the set of bin_id that will be new
@@ -31,12 +31,22 @@ def create_run_table_upload(alignment_panda):
     #doesnt seem to affect things, so will ignore
     alignment_panda=alignment_panda.transpose()
 
-    column_swap_dict={
-        'Class':'class',
-        'Sample Type':'run_type', 
-        'Name from Collaborator':'name_from_collaborator', 
-        'Polarity/Filename':'run_id'
-    }
+    if to_transient_for_pycutter_pipeline==True:
+        column_swap_dict={
+            'Class':'irrelevant_1',
+            'File type':'run_type', 
+            'Injection order':'irrelevant_2', 
+            'Batch ID':'irrelevant_3',
+            'MS/MS spectrum':'run_id'
+        }       
+
+    elif to_transient_for_pycutter_pipeline==False:
+        column_swap_dict={
+            'Class':'class',
+            'Sample Type':'run_type', 
+            'Name from Collaborator':'name_from_collaborator', 
+            'Polarity/Filename':'run_id'
+        }
 
     alignment_panda.rename(
         mapper=column_swap_dict,
@@ -61,6 +71,7 @@ def create_run_table_upload(alignment_panda):
 
 if __name__=="__main__":
     
+    #out of date
     final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos.txt'
     database_address='../../../data/database/bucketbase.db'
     alignment_panda=pd.read_csv(

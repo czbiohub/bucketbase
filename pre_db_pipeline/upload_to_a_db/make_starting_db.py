@@ -23,27 +23,15 @@ def create_connection(database_address):
 
 if __name__ =="__main__":
 
+    to_transient_for_pycutter_pipeline=True
+    if to_transient_for_pycutter_pipeline==True:
+        my_database_location="../../../data/database/transient_bucketbase.db"
+    elif to_transient_for_pycutter_pipeline==False:
+        my_database_location="../../../data/database/bucketbase.db"
+    
     db_type='sqlite'
-    my_database_location="../../../data/database/bucketbase.db"
-    #create_database(my_database_location)
-
-
-    #if db_type=='sqlite':
+    
     connection=create_connection(my_database_location)
-
-    # #example code for reference
-    # elif db_type=='postgres':
-    #     my_server='localhost'
-    #     my_database='binvestigate_first'
-    #     my_dialect='postgresql'
-    #     my_driver='psycopg2'
-    #     my_username='rictuar'
-    #     my_password='password'
-    #     my_port='5432'
-
-    #     my_connection_string=f'{my_dialect}+{my_driver}://{my_username}:{my_password}@{my_server}:{my_port}/{my_database}'
-    #     engine=create_engine(my_connection_string)#,echo=True)
-    #     connection=engine.connect()
 
     connection.execute(
         '''

@@ -31,7 +31,7 @@ def find_lowest_bin(database_address):
 
 
 
-def create_bin_table_upload(alignment_panda,database_address):
+def create_bin_table_upload(alignment_panda,database_address,to_transient_for_pycutter_pipeline,ion_mode=None):
     '''
     a bin panda is basically the output of pycutter 2 except that we skip
     the first several (currently 3) rows as well as skip the columns
@@ -41,14 +41,31 @@ def create_bin_table_upload(alignment_panda,database_address):
     1) we pre-plan the set of bin_id that will be new
     2) we check conformity to standards? (to some extent?)
     3) we coerce the bin_panda into a panda for upload to db
+
+    In retrospect, some of the things here are little clunky. 
     '''
 
-    column_swap_dict={
-        'Alignment ID':'alignment_id',
-        'Metabolite name':'english_name',	
-        'INCHIKEY':'inchikey',
-        'Polarity/Filename':'polarity'
-    }
+
+    if to_transient_for_pycutter_pipeline==True:
+        alignment_panda['bin_id']='temp'
+        alignment_panda['comment']='temp'
+        alignment_panda['polarity']=ion_mode
+        column_swap_dict={
+            'INCHIKEY':'inchikey',
+            'Adduct type':'adduct',
+            'Metabolite name':'english_name',
+            'Alignment ID':'alignment_id'
+        }
+    elif to_transient_for_pycutter_pipeline==False:
+        column_swap_dict={
+            'Alignment ID':'alignment_id',
+            'Metabolite name':'english_name',	
+            'INCHIKEY':'inchikey',
+            'Polarity/Filename':'polarity'
+        }
+
+
+
 
     alignment_panda.rename(
         mapper=column_swap_dict,
@@ -113,6 +130,8 @@ def create_bin_table_upload(alignment_panda,database_address):
 
 
 if __name__=="__main__":
+    
+    #out of date
     final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos.txt'
     database_address='../../../data/database/bucketbase.db'
     alignment_panda=pd.read_csv(final_alignment_address,sep='\t',skiprows=3)
