@@ -52,6 +52,8 @@ def clean_mapping_panda(mapping_panda,alignment_id_bin_id_panda):
     1) removing all alignment ids that are not in the output of the final pycutter step
     2) we remove all columns except the alignment ids and samples
     '''
+    
+    
     column_swap_dict={
         'Alignment ID':'alignment_id',
     }
@@ -74,11 +76,18 @@ def clean_mapping_panda(mapping_panda,alignment_id_bin_id_panda):
         [0]+list(range(index_of_msms_spectrum_column+1,len(mapping_panda.columns)))
     ]
 
-    mapping_panda.insert(
-        loc=0,
-        column='bin_id',
-        value=alignment_id_bin_id_panda['bin_id']
+
+    mapping_panda=mapping_panda.merge(
+        right=alignment_id_bin_id_panda,
+        on='alignment_id',
+        how='inner'
     )
+
+    #put bin_id at the front
+    cols = list(mapping_panda.columns)
+    cols = [cols[-1]] + cols[:-1]
+    mapping_panda = mapping_panda[cols]
+
 
     return mapping_panda
 
@@ -123,8 +132,7 @@ def parse_one_ms_dial_spectrum(spectrum_text):
     '''
     takes an ms/ms spectrum as a string and returns an array
     '''
-    #print(spectrum_text)
-    #hold=input('hold')
+
     mz_int_pair_list=spectrum_text.split(' ')
     mz_list=[float(temp_pair.split(':')[0]) for temp_pair in mz_int_pair_list]
     intensity_list=[float(temp_pair.split(':')[1]) for temp_pair in mz_int_pair_list]
@@ -147,7 +155,7 @@ def convert_np_spectrum_to_text(spectrum_array):
 def create_annotation_table_one_individual_file(individual_files_directory,temp_file,mapping_panda):    
     '''
     The order of events is to 
-    1) take subset of the mapping panda. keep only bin_id, alignment_id, and the particular sample that we want
+    1) take subset of the mapping panda. keep only bin_id, alignment_id, and the particular sample that we want (peak ids)
     2) read in the individual file and clean up the columns a little bit. drop junk and make names easier ot work with
     3) merge the mapping panda and the individual file panda. the "invididual file column" in the mapping panda
     provides the PeakID that we need to access in the individual file
@@ -184,10 +192,15 @@ def create_annotation_table_one_individual_file(individual_files_directory,temp_
         axis='columns'
     ) 
 
+
+    individual_file_panda.to_csv('./individual_file_panda.csv',sep='\t')
+    temp_annotation_upload_panda.to_csv('./abbreviated_mapping_panda.csv',sep='\t')
+
     temp_annotation_upload_panda=temp_annotation_upload_panda.merge(
         right=individual_file_panda,
         left_on=run_id,
         right_on='peak_id',
+        #i think we chose left so that "peak not prsent" goes into the databse
         how='left'
     )
 
@@ -241,7 +254,8 @@ if __name__=="__main__":
     mapping_file_address='../../../data/three_studies/alignment_individual_mappings/BRYU005_pos_mapping.txt'
     mapping_panda=pd.read_csv(mapping_file_address,sep='\t',skiprows=4)
     mapping_panda=clean_mapping_panda(mapping_panda,alignment_id_bin_id_panda)
- 
+    
+
     individual_files_directory='../../../data/three_studies/individual_sample_data_subset/unzipped/BRYU005_Bacterial_Supernatant/pos/'
     annotation_panda_for_upload=create_annotation_table_wrapper(individual_files_directory,mapping_panda,database_address)
     print(annotation_panda_for_upload)
