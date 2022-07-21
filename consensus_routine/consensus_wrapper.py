@@ -193,7 +193,7 @@ def guide_consensus_routine(database_address,spectrum_cutoff):
 if __name__=="__main__":
     
     minimum_count_for_auto_curation_possible=20
-    to_transient_for_pycutter_pipeline=False
+    to_transient_for_pycutter_pipeline=True
     if to_transient_for_pycutter_pipeline==True:
         database_address="../../data/database/transient_bucketbase.db"
     elif to_transient_for_pycutter_pipeline==False:
