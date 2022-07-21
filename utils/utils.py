@@ -20,13 +20,34 @@ def execute_query(database_address,query_string,returns_rows=True):
         engine.dispose()
 
         if len(temp_result)==0:
-            return -1
+            return 'no results found'
         elif len(temp_result)>=1:
             return temp_result
 
-    elif temp_cursor==False:
+    elif returns_rows==False:
         connection.close()
         engine.dispose()
+
+
+def execute_query_connection_established(database_connection,query_string,returns_rows=True):
+    '''
+    execute some query/operation on our DB
+    '''
+
+    temp_cursor=database_connection.execute(
+        query_string
+    )
+
+    if returns_rows==True:
+        temp_result=temp_cursor.fetchall()
+    
+        if len(temp_result)==0:
+            return 'no results found'
+        elif len(temp_result)>=1:
+            return temp_result
+
+    elif returns_rows==False:
+        return
 
 def parse_text_spectra_return_pairs(spectra_text):
     '''

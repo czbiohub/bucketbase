@@ -153,31 +153,31 @@ def guide_consensus_routine(database_address,spectrum_cutoff):
     ######################################################################################
 
     
-    # ####################do auto-curation################################################
-    # #we receive a dataframe in response.
-    # #we choose a dataframe, rather than doing any updating in this method, so that we can
-    # #parallelize it as desired
-    # bins_panda_spectra=valid_for_autocuration_test_wrapper(
-    #     database_address,
-    #     [element[0] for element in bins_without_autocuration_non_zero_spectrum_count],
-    #     'dot_product',
-    #     0.015,
-    #     0.03,
-    #     0.2,
-    #     True,
-    #     60,
-    #     0.5,
-    #     0.9,
-    #     20,
-    #     0.3,
-    #     3
-    # )
-    # ######################################################################################
-    # 
-    # update_bins_with_spectra(
-    #     bins_panda_spectra,
-    #     database_address
-    # )
+    ####################do auto-curation################################################
+    #we receive a dataframe in response.
+    #we choose a dataframe, rather than doing any updating in this method, so that we can
+    #parallelize it as desired
+    bins_panda_spectra=valid_for_autocuration_test_wrapper(
+        database_address,
+        [element[0] for element in bins_without_autocuration_non_zero_spectrum_count],
+        'dot_product',
+        0.015,
+        0.03,
+        0.2,
+        True,
+        60,
+        0.5,
+        0.9,
+        20,
+        0.3,
+        3
+    )
+    ######################################################################################
+    
+    update_bins_with_spectra(
+        bins_panda_spectra,
+        database_address
+    )
 
     bins_panda_mzrt=generate_mzrt_wrapper(
         database_address,
@@ -191,7 +191,13 @@ def guide_consensus_routine(database_address,spectrum_cutoff):
 
 
 if __name__=="__main__":
-    minimum_count_for_auto_curation_possible=20
     
-    database_address='../../data/database/bucketbase.db'
+    minimum_count_for_auto_curation_possible=20
+    to_transient_for_pycutter_pipeline=True
+    if to_transient_for_pycutter_pipeline==True:
+        database_address="../../data/database/transient_bucketbase.db"
+    elif to_transient_for_pycutter_pipeline==False:
+        database_address="../../data/database/bucketbase.db"
+
+
     guide_consensus_routine(database_address,minimum_count_for_auto_curation_possible)
