@@ -23,7 +23,7 @@ def create_connection(database_address):
 
 if __name__ =="__main__":
 
-    to_transient_for_pycutter_pipeline=False
+    to_transient_for_pycutter_pipeline=True
     if to_transient_for_pycutter_pipeline==True:
         my_database_location="../../../data/database/transient_bucketbase.db"
     elif to_transient_for_pycutter_pipeline==False:
