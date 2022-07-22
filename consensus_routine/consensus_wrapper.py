@@ -129,7 +129,7 @@ def update_bins_with_mzrt(
     connection.close()
     engine.dispose()
 
-def guide_consensus_routine(database_address,spectrum_cutoff):
+def guide_consensus_routine_generate(database_address,spectrum_cutoff):
     
     ########get bin numbers that are new (need to be curated/checked for curation)#########
     bins_without_autocuration_status=aquire_bin_ids_without_autocuration_status(database_address)
@@ -188,15 +188,103 @@ def guide_consensus_routine(database_address,spectrum_cutoff):
         database_address
     )
 
+def guide_consensus_routine_update(database_address,final_alignment_address,max_consensus_contributers):
+    '''
+    '''
+    alignment_panda=pd.read_csv(final_alignment_address,sep='\t',skiprows=3)
+    bins_for_updating=alignment_panda['bin_id'].loc[alignment_panda['bin_id'].notna()].astype(int).to_list()
+    print(bins_for_updating)
+
+    result_dict={
+        'bin_id':[],
+        'valid_for_autocuratin':[],
+        'consensus_spectrum':[]
+    }
+
+    for temp_bin in bins_for_updating:
+        #a lot of this code is borrowed form valid_for_autocurations_test
+        #the difference in this method is taht we dont check whether the autocuration is valid
+        #the reason for this is that we made the automatic annotation based on whether the main DB
+        #bin is like the bin that we see in this study
+        #it would be unfortunate if our sampling, by chance, crossed the "fail" threshold and this bin was
+        #frozen in time
+        #so we proceed directly to clustering and consensussing
+
+        annotations_and_spectra=select_spectra_for_bin(database_address,temp_bin)
+
+        update_member_of_consensus(database_address,temp_annotation_ids,0)
+
+        
+        #choose up to max_consensus_contributers randomly
+        #we do this because getting the clusters from a large number of spectra (could be come 10k+)
+        #is slow. and the consensus spectra probably asymptote
+        if len(annotations_and_spectra)>max_consensus_contributers:
+            random.shuffle(annotations_and_spectra)
+            annotations_and_spectra=annotations_and_spectra[0:max_consensus_contributers]
+
+        temp_annotation_ids=[element[0] for element in annotations_and_spectra]
+        temp_spectra_text=[element[1] for element in annotations_and_spectra]
+        print(f'{len(temp_spectra_text)} spectra') #len(temp_spectra_text))
+        temp_spectra_paired=parse_text_spectra_return_pairs(temp_spectra_text)
+        temp_spectra_paired_cleaned=get_cleaned_spectra(temp_spectra_paired,noise_level,ms2_tolerance)
+
+
+        update_member_of_consensus(database_address,temp_annotation_ids,1)
+
+
+        cluster_assignments=perform_hierarchical_clustering_routine(temp_spectra_paired_cleaned,similarity_metric,ms2_tolerance,mutual_distance_for_cluster)
+        #count membership and get cluster percent
+        cluster_assignments_sorted_by_membership,biggest_cluster_percent=get_cluster_membership_ordering(cluster_assignments)   
+
+        consensus_spectra_text=generate_consensus_spectra_text_wrapper(
+            temp_spectra_paired_cleaned,
+            cluster_assignments,
+            cluster_assignments_sorted_by_membership,
+            ms2_tolerance,
+            minimum_percent_present,
+            bin_space_tolerance
+        )
+        result_dict['bin_id'].append(temp_bin)
+        #its already valid for autocuration, this changes nothing
+        result_dict['valid_for_autocuration'].append(1)
+        result_dict['consensus_spectrum'].append(consensus_spectra_text)
+
+    bins_panda_spectra=pd.DataFrame.from_dict(result_dict)
+
+    update_bins_with_spectra(
+        bins_panda_spectra,
+        database_address
+    )
+
+    bins_panda_mzrt=generate_mzrt_wrapper(
+        database_address,
+        bins_without_autocuration_status
+    )
+
+    update_bins_with_mzrt(
+        bins_panda_mzrt,
+        bins_for_updating
+    )
+
+
 
 if __name__=="__main__":
-    
+    #generate or update
+    #i would expect that update would be the choice if and only if
+    #the database style the "main" database
+    consensus_style='update'
+    max_consensus_contributers=500
+
+
     minimum_count_for_auto_curation_possible=20
-    to_transient_for_pycutter_pipeline=True
+    to_transient_for_pycutter_pipeline=False
     if to_transient_for_pycutter_pipeline==True:
         database_address="../../data/database/transient_bucketbase.db"
     elif to_transient_for_pycutter_pipeline==False:
         database_address="../../data/database/bucketbase.db"
 
-
-    guide_consensus_routine(database_address,minimum_count_for_auto_curation_possible)
+    if consensus_style=='generate':
+        guide_consensus_routine_generate(database_address,minimum_count_for_auto_curation_possible)
+    elif consensus_style=='update':
+        final_alignment_address='../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos_with_some_curations.txt'
+        guide_consensus_routine_update(database_address,final_alignment_address)

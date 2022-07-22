@@ -11,14 +11,14 @@ from collections import Counter
 from scipy.stats import entropy
 from generate_consensus_spectra import *
 
-def update_member_of_consensus(database_address,temp_annotation_ids):
+def update_member_of_consensus(database_address,temp_annotation_ids,new_status):
     
     annotations_as_strings=[str(element) for element in temp_annotation_ids]
     total_string='\', \''.join(annotations_as_strings)
     total_string='(\''+total_string+'\')'
 
-    query='''update annotations
-    set member_of_consensus=1
+    query=f'''update annotations
+    set member_of_consensus={new_status}
     where annotation_id in '''+total_string
 
     execute_query(database_address,query,returns_rows=False)
@@ -236,7 +236,12 @@ def valid_for_autocuration_test_wrapper(
         #3) spread of mz
         #4) entropy
 
-        update_member_of_consensus(database_address,temp_annotation_ids)
+        #an aside: the reason for tangling "determine if something is valid for autocuration"
+        #and "generate the consensus spectrum" was that making the clusters is an expensive process
+        #and we wanted to do it once
+        
+        update_member_of_consensus(database_address,temp_annotation_ids,1)
+         
         #1)
         #get the cluster assignments. if there is only one spectrum, then cheese it and assign the cluster membership manually
         if len(temp_spectra_paired_cleaned)==1:
