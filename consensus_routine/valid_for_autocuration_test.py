@@ -11,16 +11,32 @@ from collections import Counter
 from scipy.stats import entropy
 from generate_consensus_spectra import *
 
+def update_member_of_consensus(database_address,temp_annotation_ids):
+    
+    annotations_as_strings=[str(element) for element in temp_annotation_ids]
+    total_string='\', \''.join(annotations_as_strings)
+    total_string='(\''+total_string+'\')'
+
+    query='''update annotations
+    set member_of_consensus=1
+    where annotation_id in '''+total_string
+
+    execute_query(database_address,query,returns_rows=False)
+
+
+
+
 def select_spectra_for_bin(database_address,bin_id):
+    
     query=f'''
-    select spectrum 
+    select annotation_id, spectrum 
     from annotations
     inner join
     runs
     on annotations.run_id=runs.run_id
     where (annotations.bin_id={bin_id}) and (annotations.spectrum is not null) and (runs.run_type='Sample')
     '''
-    return [element[0] for element in execute_query(database_address,query)]
+    return [(element[0],element[1]) for element in execute_query(database_address,query)]
 
 
 def make_distance_matrix(spectra,similarity_metric,ms2_tolerance):
@@ -199,7 +215,9 @@ def valid_for_autocuration_test_wrapper(
         #there is probably a more fine-grained way to do this, but we pass on it for now.
         #note that the annotaitons from blanks and qcs still go into the bin, but the bin is only
         #characterized based on samples
-        temp_spectra_text=select_spectra_for_bin(database_address,temp_bin)
+        annotations_and_spectra=select_spectra_for_bin(database_address,temp_bin)
+        temp_annotation_ids=[element[0] for element in annotations_and_spectra]
+        temp_spectra_text=[element[1] for element in annotations_and_spectra]
         print(f'{len(temp_spectra_text)} spectra') #len(temp_spectra_text))
 
         #there was a problem in that certain modules expect spectra as mz/rt pairs and some (the ones i wrote)
@@ -218,6 +236,7 @@ def valid_for_autocuration_test_wrapper(
         #3) spread of mz
         #4) entropy
 
+        update_member_of_consensus(database_address,temp_annotation_ids)
         #1)
         #get the cluster assignments. if there is only one spectrum, then cheese it and assign the cluster membership manually
         if len(temp_spectra_paired_cleaned)==1:

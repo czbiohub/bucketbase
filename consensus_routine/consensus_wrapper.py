@@ -152,7 +152,6 @@ def guide_consensus_routine(database_address,spectrum_cutoff):
     set_autocurate_valid(bins_mzrt_only,0)
     ######################################################################################
 
-    
     ####################do auto-curation################################################
     #we receive a dataframe in response.
     #we choose a dataframe, rather than doing any updating in this method, so that we can
