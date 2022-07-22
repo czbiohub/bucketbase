@@ -31,7 +31,7 @@ if __name__=="__main__":
     and that is taken advantage of when making the annotation panda
     '''
 
-    to_transient_for_pycutter_pipeline=False
+    to_transient_for_pycutter_pipeline=True
     ion_mode='pos'
     if to_transient_for_pycutter_pipeline==True:
         database_address="../../../data/database/transient_bucketbase.db"
