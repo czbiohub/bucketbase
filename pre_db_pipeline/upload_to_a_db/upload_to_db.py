@@ -31,7 +31,7 @@ if __name__=="__main__":
     and that is taken advantage of when making the annotation panda
     '''
 
-    to_transient_for_pycutter_pipeline=True
+    to_transient_for_pycutter_pipeline=False
     ion_mode='pos'
     if to_transient_for_pycutter_pipeline==True:
         database_address="../../../data/database/transient_bucketbase.db"
@@ -68,14 +68,11 @@ if __name__=="__main__":
         alignment_panda=pd.read_csv(final_alignment_address,sep='\t',skiprows=3)    
         bin_panda_for_upload=create_bin_table_upload(alignment_panda,database_address,to_transient_for_pycutter_pipeline)
     
-    bin_panda_for_upload.to_csv('./bin.csv',sep='\t')
-    
 
     #annotation_panda (depends on bin_panda)
     alignment_id_bin_id_panda=get_alignment_id_bin_id_map(alignment_panda,bin_panda_for_upload)
     mapping_panda=pd.read_csv(mapping_file_address,sep='\t',skiprows=4)
     mapping_panda=clean_mapping_panda(mapping_panda,alignment_id_bin_id_panda)
-    mapping_panda.to_csv('./temp.csv',sep='\t')
     annotation_panda_for_upload=create_annotation_table_wrapper(individual_files_directory,mapping_panda,database_address)
 
     upload_table_to_db(run_panda_for_upload,'runs')

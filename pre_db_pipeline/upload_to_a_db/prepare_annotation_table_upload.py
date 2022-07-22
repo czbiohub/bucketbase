@@ -193,9 +193,6 @@ def create_annotation_table_one_individual_file(individual_files_directory,temp_
     ) 
 
 
-    individual_file_panda.to_csv('./individual_file_panda.csv',sep='\t')
-    temp_annotation_upload_panda.to_csv('./abbreviated_mapping_panda.csv',sep='\t')
-
     temp_annotation_upload_panda=temp_annotation_upload_panda.merge(
         right=individual_file_panda,
         left_on=run_id,

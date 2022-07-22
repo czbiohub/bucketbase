@@ -8,7 +8,7 @@ def select_rts_for_bin(database_address,bin_id):
     inner join
     runs
     on annotations.run_id=runs.run_id
-    where (annotations.bin_id={bin_id}) and (annotations.retention_time is not null) and (runs.run_type='Sample')
+    where (annotations.bin_id={bin_id}) and (annotations.retention_time is not null)
     '''
     return [element[0] for element in execute_query(database_address,query)]
 
@@ -19,7 +19,7 @@ def select_mzs_for_bin(database_address,bin_id):
     inner join
     runs
     on annotations.run_id=runs.run_id
-    where (annotations.bin_id={bin_id}) and (annotations.precursor_mz is not null) and (runs.run_type='Sample')
+    where (annotations.bin_id={bin_id}) and (annotations.precursor_mz is not null)
     '''
     return [element[0] for element in execute_query(database_address,query)]
 
@@ -42,6 +42,7 @@ def generate_mzrt_wrapper(
 
     for z,temp_bin in enumerate(bin_list):
         print(f'bin number {temp_bin} iteration number {z}')
+        
         temp_mz_list=select_mzs_for_bin(database_address,temp_bin)
         temp_rt_list=select_rts_for_bin(database_address,temp_bin)
 
