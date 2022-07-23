@@ -121,6 +121,10 @@ def autocurate_transient_bins(
             mz_tolerance,
             rt_tolerance
         )
+
+        print(candidate_bins_df)
+        print(candidate_bins_df['consensus_spectrum'])
+        print('++++++++++++++++++++++++++++++++++++++++++++')
         
 
         # candidates_bins_df['dot_product']=cadidates_bin_df.apply(
@@ -128,18 +132,29 @@ def autocurate_transient_bins(
         # )
         if isinstance(candidate_bins_df,pd.DataFrame):
             #new_columns_panda=candidate_bins_df.apply(
+            # for i in candidate_bins_df['consensus_spectrum']:
+            #     candidate_bins_df[['dot_product','reverse_dot_product']]=candidate_bins_df.apply(
+            #     lambda x: get_dot_product_of_largest_clusters(i,series['consensus_spectrum'],ms2_tolerance),
+            #     axis=1,
+            #     result_type='expand'
+            #     )
+
             candidate_bins_df[['dot_product','reverse_dot_product']]=candidate_bins_df.apply(
-                lambda x: get_dot_product_of_largest_clusters(series['consensus_spectrum'],candidate_bins_df['consensus_spectrum'],ms2_tolerance),
+                lambda x: get_dot_product_of_largest_clusters(x['consensus_spectrum'],series['consensus_spectrum'],ms2_tolerance),
                 axis=1,
                 result_type='expand'
             )
-        
+
             #candidate_bins_df=pd.concat([candidate_bins_df,new_columns_panda],axis='columns')
 
             candidate_bins_df['avg_similarity']=weight_of_dot_product*candidate_bins_df['dot_product']+weight_of_reverse_dot_product*candidate_bins_df['reverse_dot_product']
-
             candidate_bins_df.sort_values(by='avg_similarity',inplace=True,ascending=False)
             
+            english_name=series['english_name']
+            print(candidate_bins_df)
+            print(f'we are trying to curate {english_name}')
+            hold=input('hold')
+
             transient_bins_panda.at[row,'matching_bins_df']=candidate_bins_df
             transient_bins_panda.at[row,'top_match_bin_id']=candidate_bins_df.at[0,'bin_id']
 
@@ -179,21 +194,26 @@ def guide_auto_curation_wrapper(
     )
     return transient_database_auto_curated_as_df
 
-def get_dot_product_of_largest_clusters(database_spectrum_text,transient_spectrum_text,ms2_tolerance):
+def get_dot_product_of_largest_clusters(transient_spectrum_text,database_spectrum_text,ms2_tolerance):
     '''
     '''
 
+    #print('-'*50)
+    ##print(transient_spectrum_text)
+    #print(database_spectrum_text)
+
     #we send a list because thats what the util function expects, whoops.
+    candidate_spectrum=parse_text_spectra_return_pairs(
+        [transient_spectrum_text.split('@')[0]]
+    )
     database_spectrum=parse_text_spectra_return_pairs(
         [database_spectrum_text.split('@')[0]]
     )
-    candidate_spectrum=parse_text_spectra_return_pairs(
-        [database_spectrum_text.split('@')[0]]
-    )
 
-    print(database_spectrum[0])
-    print(candidate_spectrum[0])
-    print(ms2_tolerance)
+
+    #print(database_spectrum[0])
+    #print(candidate_spectrum[0])
+    #print(ms2_tolerance)
 
     #print(database_spectrum)
     dot_product=spectral_entropy.similarity(

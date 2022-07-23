@@ -272,12 +272,12 @@ if __name__=="__main__":
     #generate or update
     #i would expect that update would be the choice if and only if
     #the database style the "main" database
-    consensus_style='update'
+    consensus_style='generate'
     max_consensus_contributers=500
 
 
     minimum_count_for_auto_curation_possible=20
-    to_transient_for_pycutter_pipeline=False
+    to_transient_for_pycutter_pipeline=True
     if to_transient_for_pycutter_pipeline==True:
         database_address="../../data/database/transient_bucketbase.db"
     elif to_transient_for_pycutter_pipeline==False:
