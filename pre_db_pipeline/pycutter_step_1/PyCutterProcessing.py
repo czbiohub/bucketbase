@@ -320,8 +320,9 @@ class PyCutterProcessing:
         df2 = self.insert_row(4, df2, list(df2.columns))
 
         # Final save of formatted spreadsheet
-        filename = 'Project_ID.tsv'
-        df2.to_csv(filename, sep='\t', header=False, index=False)
+        # plb - redundant with other saves?
+        # filename = 'Project_ID.tsv'
+        # df2.to_csv(filename, sep='\t', header=False, index=False)
 
         # Final log updates
         expected = len(df) - self.deleted
@@ -676,20 +677,28 @@ class PyCutterProcessing:
 # Use this to run a simple test of the script
 if __name__ == "__main__":
 
+    step_to_do='two'
+
     pycutter = PyCutterProcessing()
 
     #step_one_files = pycutter.process_alignment(
     #    "../../../data/pipeline_test/step_0_raw_from_ms_dial/STQU002_pos_raw_alignment.txt")
-    step_one_files=pycutter.process_alignment(
-        '../../../data/BRYU005_pipeline_test/step_0_raw_from_ms_dial/BRYU005_pos_alignment_raw.txt',
-        '../../../data/BRYU005_pipeline_test/step_0_raw_from_ms_dial/BRYU005_seq_MetaData.csv'
-    )
-    step_one_files['Reduced'].to_csv(
-        f'../../../data/BRYU005_pipeline_test/step_1_post_pycutter/py_cutter_step_1_output.tsv',
-        sep='\t',
-        index=None,
-        header=None
-    )
+    if step_to_do=='one':
+        step_one_files=pycutter.process_alignment(
+            '../../../data/BRYU005_pipeline_test/step_0_raw_from_ms_dial/BRYU005_pos_alignment_raw.txt',
+            '../../../data/BRYU005_pipeline_test/step_0_raw_from_ms_dial/BRYU005_seq_MetaData.csv'
+        )
+        step_one_files['Reduced'].to_csv(
+            f'../../../data/BRYU005_pipeline_test/step_1_post_pycutter/py_cutter_step_1_output.tsv',
+            sep='\t',
+            index=None,
+            header=None
+        )
+
+    elif step_to_do=='two':
+        step_two_files=pycutter.combine_annotations(
+            shit!
+        )
 
 
     # Step 1 – Processing raw MS-DIAL alignment
