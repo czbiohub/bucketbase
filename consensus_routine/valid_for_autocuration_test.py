@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import sys
 sys.path.insert(0, '../utils/')
-from utils import execute_query
+from utils import execute_query_connection_established
 from utils import parse_text_spectra_return_pairs
 import spectral_entropy
 from scipy.spatial import distance
@@ -11,7 +11,7 @@ from collections import Counter
 from scipy.stats import entropy
 from generate_consensus_spectra import *
 
-def update_member_of_consensus(database_address,temp_annotation_ids,new_status):
+def update_member_of_consensus(database_connection,temp_annotation_ids,new_status):
     
     annotations_as_strings=[str(element) for element in temp_annotation_ids]
     total_string='\', \''.join(annotations_as_strings)
@@ -21,12 +21,12 @@ def update_member_of_consensus(database_address,temp_annotation_ids,new_status):
     set member_of_consensus={new_status}
     where annotation_id in '''+total_string
 
-    execute_query(database_address,query,returns_rows=False)
+    execute_query_connection_established(database_connection,query,returns_rows=False)
 
 
 
 
-def select_spectra_for_bin(database_address,bin_id):
+def select_spectra_for_bin(database_connection,bin_id):
     
     query=f'''
     select annotation_id, spectrum 
@@ -36,7 +36,7 @@ def select_spectra_for_bin(database_address,bin_id):
     on annotations.run_id=runs.run_id
     where (annotations.bin_id={bin_id}) and (annotations.spectrum is not null) and (runs.run_type='Sample')
     '''
-    return [(element[0],element[1]) for element in execute_query(database_address,query)]
+    return [(element[0],element[1]) for element in execute_query_connection_established(database_connection,query)]
 
 
 def make_distance_matrix(spectra,similarity_metric,ms2_tolerance):
@@ -180,7 +180,7 @@ def get_bin_entropy(temp_spectra_paired,use_ceiling,ms2_tolerance):
         return np.exp(entropy(np.ceil(output_intensity_list)))
 
 def valid_for_autocuration_test_wrapper(
-    database_address,
+    database_connection,
     bin_list,
     similarity_metric,
     ms2_tolerance,
@@ -215,7 +215,7 @@ def valid_for_autocuration_test_wrapper(
         #there is probably a more fine-grained way to do this, but we pass on it for now.
         #note that the annotaitons from blanks and qcs still go into the bin, but the bin is only
         #characterized based on samples
-        annotations_and_spectra=select_spectra_for_bin(database_address,temp_bin)
+        annotations_and_spectra=select_spectra_for_bin(database_connection,temp_bin)
         temp_annotation_ids=[element[0] for element in annotations_and_spectra]
         temp_spectra_text=[element[1] for element in annotations_and_spectra]
         print(f'{len(temp_spectra_text)} spectra') #len(temp_spectra_text))
@@ -240,7 +240,7 @@ def valid_for_autocuration_test_wrapper(
         #and "generate the consensus spectrum" was that making the clusters is an expensive process
         #and we wanted to do it once
         
-        update_member_of_consensus(database_address,temp_annotation_ids,1)
+        update_member_of_consensus(database_connection,temp_annotation_ids,1)
          
         #1)
         #get the cluster assignments. if there is only one spectrum, then cheese it and assign the cluster membership manually
