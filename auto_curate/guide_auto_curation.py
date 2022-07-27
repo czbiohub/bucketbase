@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import sys
 sys.path.insert(0, '../utils/')
@@ -40,8 +41,10 @@ def select_all_bins(a_database_connection,ion_mode):
     query=f'''
     select * from bins
     where
-    (polarity = "{ion_mode}") AND
-    (valid_for_autocuration=1)'''
+    (polarity = "{ion_mode}")
+    order by
+    bin_id'''
+    #note, recently removed AND (valid_for_autocuration = 1)
     bins_reply=execute_query_connection_established(a_database_connection,query)
     bins_df=pd.DataFrame.from_records(
         data=bins_reply,
@@ -102,16 +105,31 @@ def autocurate_transient_bins(
     weight_of_reverse_dot_product,
     mz_tolerance,
     rt_tolerance,
-    ms2_tolerance
+    ms2_tolerance,
+    output_panda
 ):
     '''
     '''
 
-    transient_bins_panda['matching_bins_df']='no_match_found'
+    
     transient_bins_panda['top_match_bin_id']='no_match_found'
+    transient_bins_panda['top_match_english_name']='no_match_found'
+    transient_bins_panda['matching_bins_text']='no_match_found'
+    transient_bins_panda['matching_bins_df']='no_match_found'
 
     #select_database_bins=
     for row,series in transient_bins_panda.iterrows():
+        english_name=series['english_name']
+        transient_bin_id=series['bin_id']
+        print(f'we are trying to curate {english_name} which has transient bin_id {transient_bin_id}') 
+        if series['valid_for_autocuration']==0:
+            print('it is not valid for autocuration, so we continue')
+            transient_bins_panda.at[transient_bin_id,'top_match_bin_id']='not valid for autocuration'
+            transient_bins_panda.at[transient_bin_id,'top_match_english_name']='not valid for autocuration'
+            transient_bins_panda.at[transient_bin_id,'matching_bins_df']='not valid for autocuration'
+            transient_bins_panda.at[transient_bin_id,'matching_bins_text']='not valid for autocuration'
+            continue
+        
         candidate_bins_df=select_candidate_bins(
             database_connection,
             ion_mode,
@@ -121,27 +139,49 @@ def autocurate_transient_bins(
             mz_tolerance,
             rt_tolerance
         )
-        
+        english_name=series['english_name']
+        transient_bin_id=series['bin_id']
+        print(f'we are trying to curate {english_name} which has transient bin_id {transient_bin_id}')
 
         # candidates_bins_df['dot_product']=cadidates_bin_df.apply(
         #     get_dot_product_of_largest_clusters,axis=1
         # )
         if isinstance(candidate_bins_df,pd.DataFrame):
             #new_columns_panda=candidate_bins_df.apply(
+            # for i in candidate_bins_df['consensus_spectrum']:
+            #     candidate_bins_df[['dot_product','reverse_dot_product']]=candidate_bins_df.apply(
+            #     lambda x: get_dot_product_of_largest_clusters(i,series['consensus_spectrum'],ms2_tolerance),
+            #     axis=1,
+            #     result_type='expand'
+            #     )
+
             candidate_bins_df[['dot_product','reverse_dot_product']]=candidate_bins_df.apply(
-                lambda x: get_dot_product_of_largest_clusters(series['consensus_spectrum'],candidate_bins_df['consensus_spectrum'],ms2_tolerance),
+                lambda x: get_dot_product_of_largest_clusters(x['consensus_spectrum'],series['consensus_spectrum'],ms2_tolerance),
                 axis=1,
                 result_type='expand'
             )
-        
+
             #candidate_bins_df=pd.concat([candidate_bins_df,new_columns_panda],axis='columns')
 
             candidate_bins_df['avg_similarity']=weight_of_dot_product*candidate_bins_df['dot_product']+weight_of_reverse_dot_product*candidate_bins_df['reverse_dot_product']
-
             candidate_bins_df.sort_values(by='avg_similarity',inplace=True,ascending=False)
             
-            transient_bins_panda.at[row,'matching_bins_df']=candidate_bins_df
-            transient_bins_panda.at[row,'top_match_bin_id']=candidate_bins_df.at[0,'bin_id']
+            
+            
+            
+            print('we found:')
+            print(candidate_bins_df)
+            print(candidate_bins_df.columns)
+            #hold=input('hold')
+
+            transient_bins_panda.at[transient_bin_id,'top_match_bin_id']=candidate_bins_df.at[0,'bin_id']
+            transient_bins_panda.at[transient_bin_id,'top_match_english_name']=candidate_bins_df.at[0,'english_name']
+            transient_bins_panda.at[transient_bin_id,'matching_bins_df']=candidate_bins_df
+            temp_json=candidate_bins_df.to_json(orient='records')
+            #Microsoft Excel has a character limit of 32,767 characters in each cell.
+            if len(temp_json)>32000:
+                temp_json=temp_json[:32000]
+            transient_bins_panda.at[transient_bin_id,'matching_bins_text']=temp_json
 
 
         else:
@@ -157,7 +197,8 @@ def guide_auto_curation_wrapper(
         weight_of_reverse_dot_product,
         mz_tolerance,
         rt_tolerance,
-        ms2_tolerance
+        ms2_tolerance,
+        output_panda
     ):
     '''
     we hae this lil mini function so that we can pseudo-vectrize (as apply) and/or multip
@@ -175,48 +216,100 @@ def guide_auto_curation_wrapper(
         weight_of_reverse_dot_product,
         mz_tolerance,
         rt_tolerance,
-        ms2_tolerance
+        ms2_tolerance,
+        output_panda
     )
     return transient_database_auto_curated_as_df
 
-def get_dot_product_of_largest_clusters(database_spectrum_text,transient_spectrum_text,ms2_tolerance):
+def get_dot_product_of_largest_clusters(transient_spectrum_text,database_spectrum_text,ms2_tolerance):
     '''
     '''
 
+    #print('-'*50)
+    ##print(transient_spectrum_text)
+    #print(database_spectrum_text)
+
     #we send a list because thats what the util function expects, whoops.
+    candidate_spectrum=parse_text_spectra_return_pairs(
+        [transient_spectrum_text.split('@')[0]]
+    )
     database_spectrum=parse_text_spectra_return_pairs(
         [database_spectrum_text.split('@')[0]]
     )
-    candidate_spectrum=parse_text_spectra_return_pairs(
-        [database_spectrum_text.split('@')[0]]
-    )
 
-    print(database_spectrum[0])
-    print(candidate_spectrum[0])
-    print(ms2_tolerance)
+
+    #print(database_spectrum[0])
+    #print(candidate_spectrum[0])
+    #eprint(ms2_tolerance)
 
     #print(database_spectrum)
     dot_product=spectral_entropy.similarity(
                     #we select an element because of the above problem. whoops.
-                    database_spectrum[0], candidate_spectrum[0], 
+                    database_spectrum[0], 
+                    candidate_spectrum[0], 
                     method='dot_product',
                     ms2_da=ms2_tolerance,
                     need_clean_spectra=False,
                 )
-    print(dot_product)
+    #print(dot_product)
 
     reverse_dot_product=spectral_entropy.similarity(
-                    candidate_spectrum[0], database_spectrum[0],
-                    method='dot_product',
+                    database_spectrum[0],
+                    candidate_spectrum[0],
+                    method='dot_product_reverse',
                     ms2_da=ms2_tolerance,
                     need_clean_spectra=False,
                 )
-    print(reverse_dot_product)
+    #print(reverse_dot_product)
 
     return dot_product,reverse_dot_product
 
+def read_pycutter_step_1_input(pycutter_autocurated_input_address,inserted_columns):
+    input_panda=pd.read_csv(pycutter_autocurated_input_address,sep='\t')
+    # Define 5th row as column header
+    input_panda.columns = input_panda.iloc[3]
+    #temporarily lose the top rows. we will reattach them at the end with a concatenation
+    input_panda.drop(input_panda.index[0:4], inplace=True)
+    #print(input_panda)
+    #print(input_panda.columns)
+    inchikey_location=input_panda.columns.get_loc('Adduct type')
+    for i in range(len(inserted_columns)-1,-1,-1):
+        input_panda.insert(loc=inchikey_location+1,column=inserted_columns[i],value=np.nan)
+        #input_panda.insert(loc=0,column=inserted_columns[i],value=np.nan)
+        ##input_panda.at[3,inserted_columns[i]]=inserted_columns[i]
+    #print(inchikey_location)
+    #print(input_panda.columns)
+    #print(input_panda[inserted_columns])
+    #hold=input('hold')
+    input_panda.reset_index(drop=True,inplace=True)
+    #input_panda.insert()
+    return input_panda
 
+def insert_autocurations_into_pycutter_input(pycutter_input,transient_database_auto_curated_as_df,pycutter_step_1_output_address,inserted_columns):
+    '''
+    attach the results form the transient database autocuration
+    then, attach the top 3 rows of the original pycutter step 1 output
 
+    '''
+    pycutter_input['bin_id']=transient_database_auto_curated_as_df['top_match_bin_id']
+    pycutter_input['english_name']=transient_database_auto_curated_as_df['top_match_english_name']
+    pycutter_input['curation_text']=transient_database_auto_curated_as_df['matching_bins_text']
+
+    temp=pd.read_csv(pycutter_step_1_output_address,sep='\t',nrows=5,header=None)
+    print(temp)
+    print(temp.iloc[4])
+    temp.columns = temp.iloc[4]
+    temp.drop(list(range(5,temp.index.stop)),inplace=True,axis='index')
+    inchikey_location=temp.columns.get_loc('Adduct type')
+    for i in range(len(inserted_columns)-1,-1,-1):
+        temp.insert(loc=inchikey_location+1,column=inserted_columns[i],value=np.nan)
+    temp.iloc[4]=temp.columns
+    print(temp)
+    print(pycutter_input)
+    hold=input('just before conczt ')
+    final_result=pd.concat([temp,pycutter_input],axis='index',ignore_index=True)
+
+    return final_result
 
 if __name__=="__main__":
 
@@ -230,6 +323,18 @@ if __name__=="__main__":
 
     transient_database_address='../../data/database/transient_bucketbase.db'
     database_address='../../data/database/bucketbase.db'
+    
+    pycutter_autocurated_input_address='../../data/BRYU005_pipeline_test/step_1_post_pycutter/py_cutter_step_1_output.tsv'
+    pycutter_autocurated_output_address='../../data/BRYU005_pipeline_test/step_1_b_post_auto_curation/pycutter_step_1_autocurated.tsv'
+    inserted_columns=['comment','bin_id','english_name','curation_text']
+    pycutter_input=read_pycutter_step_1_input(pycutter_autocurated_input_address,inserted_columns)
+    #recreate the same bin IDs that we see in the transient databse.
+    #https://github.com/czbiohub/bucketbase/issues/30
+    #print(pycutter_input.index)
+    #print(list(range(0,pycutter_input.index.stop)))
+    pycutter_input['bin_id']=list(range(0,pycutter_input.index.stop))
+    print(pycutter_input.columns)
+    hold=input('just after read in')
 
     transient_engine=sqlalchemy.create_engine(f"sqlite:///{transient_database_address}")
     transient_connection=transient_engine.connect()
@@ -245,13 +350,24 @@ if __name__=="__main__":
         weight_of_reverse_dot_product,
         mz_tolerance,
         rt_tolerance,
-        ms2_tolerance
+        ms2_tolerance,
+        pycutter_input
         )
 
     print(transient_database_auto_curated_as_df)
+    print(pycutter_input.columns)
+    hold=input('hold')
+
+    #print(transient_database_auto_curated_as_df)
     
     transient_connection.close()
     transient_engine.dispose()
 
     database_connection.close()
     database_engine.dispose()
+
+    #print(pycutter_input)
+    final_result=insert_autocurations_into_pycutter_input(pycutter_input,transient_database_auto_curated_as_df,pycutter_autocurated_input_address,inserted_columns)
+    final_result.to_csv(pycutter_autocurated_output_address,sep='\t',index=False,header=False)
+    print(final_result)
+    #we now need to merge the autocurated transient DB panda with the pycutter input panda

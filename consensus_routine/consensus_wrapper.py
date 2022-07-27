@@ -2,19 +2,19 @@ import sqlalchemy
 import pandas as pd
 import sys
 sys.path.insert(0, '../utils/')
-from utils import execute_query
+from utils import execute_query_connection_established
 from valid_for_autocuration_test import *
 from generate_mzrt_consensus import *
 
-def aquire_bin_ids_without_autocuration_status(database_address):
+def aquire_bin_ids_without_autocuration_status(database_connection):
     query='''
     select bin_id 
     from bins
     where valid_for_autocuration is null
     '''
-    return [element[0] for element in execute_query(database_address,query)]
+    return [element[0] for element in execute_query_connection_established(database_connection,query)]
 
-def aquire_bin_ids_and_spectrum_count_without_autocuration(database_address):
+def aquire_bin_ids_and_spectrum_count_without_autocuration(database_connection):
     #this query gives you the number of spectra that are not null
     #corresponding to each bin id that does not have a valid_for_autocurate assigned
     #and where spectra come from samples
@@ -35,9 +35,9 @@ def aquire_bin_ids_and_spectrum_count_without_autocuration(database_address):
     group by b.bin_id
     order by b.bin_id
     '''
-    #print(execute_query(database_address,query))
-    #print(len(execute_query(database_address,query)))
-    return [element for element in execute_query(database_address,query)]
+    #print(execute_query_connection_established(database_connection,query))
+    #print(len(execute_query_connection_established(database_connection,query)))
+    return [element for element in execute_query_connection_established(database_connection,query)]
    
 def set_mzrt_only(bins,value):
     '''
@@ -55,7 +55,7 @@ def set_mzrt_only(bins,value):
     set mzrt_only = {value}
     where bin_id IN '''+total_string
 
-    execute_query(database_address,query,returns_rows=False)
+    execute_query_connection_established(database_connection,query,returns_rows=False)
 
 
 def set_autocurate_valid(bins,value):
@@ -74,11 +74,11 @@ def set_autocurate_valid(bins,value):
     set valid_for_autocuration = {value}
     where bin_id IN '''+total_string
 
-    execute_query(database_address,query,returns_rows=False)
+    execute_query_connection_established(database_connection,query,returns_rows=False)
 
 def update_bins_with_spectra(
     dataframe,
-    database_address
+    database_connection
 ):
     values_text_list='('+dataframe.bin_id.astype(str)+', '+dataframe.valid_for_autocuration.astype(str)+', \''+dataframe.consensus_spectrum+'\')'
     values_text=',\n'.join(values_text_list.values)
@@ -94,7 +94,7 @@ def update_bins_with_spectra(
     )as temp_table
     where bins.bin_id=temp_table.column1'''
 
-    engine=sqlalchemy.create_engine(f"sqlite:///{database_address}")
+    engine=sqlalchemy.create_engine(f"sqlite:///{database_connection}")
     connection=engine.connect()
 
     temp_cursor=connection.execute(query_string)
@@ -105,7 +105,7 @@ def update_bins_with_spectra(
 
 def update_bins_with_mzrt(
     dataframe,
-    database_address
+    database_connection
 ):
     values_text_list='('+dataframe.bin_id.astype(str)+', '+dataframe.consensus_mz.astype(str)+', '+dataframe.consensus_rt.astype(str)+')'
     values_text=',\n'.join(values_text_list.values)
@@ -121,7 +121,7 @@ def update_bins_with_mzrt(
     )as temp_table
     where bins.bin_id=temp_table.column1'''
 
-    engine=sqlalchemy.create_engine(f"sqlite:///{database_address}")
+    engine=sqlalchemy.create_engine(f"sqlite:///{database_connection}")
     connection=engine.connect()
 
     temp_cursor=connection.execute(query_string)
@@ -129,13 +129,13 @@ def update_bins_with_mzrt(
     connection.close()
     engine.dispose()
 
-def guide_consensus_routine_generate(database_address,spectrum_cutoff):
+def guide_consensus_routine_generate(database_connection,spectrum_cutoff):
     
     ########get bin numbers that are new (need to be curated/checked for curation)#########
-    bins_without_autocuration_status=aquire_bin_ids_without_autocuration_status(database_address)
+    bins_without_autocuration_status=aquire_bin_ids_without_autocuration_status(database_connection)
     #bins that have at least one spectrum (and therefore need the valid-for-autocuration test)
     #we do all the different stuff like cluster on all of them for code-base simplicity
-    bins_without_autocuration_non_zero_spectrum_count=aquire_bin_ids_and_spectrum_count_without_autocuration(database_address)
+    bins_without_autocuration_non_zero_spectrum_count=aquire_bin_ids_and_spectrum_count_without_autocuration(database_connection)
 
     bins_mzrt_only=set(bins_without_autocuration_status).difference(
          #do the comprehension to extract the bin ids on the fly
@@ -157,7 +157,7 @@ def guide_consensus_routine_generate(database_address,spectrum_cutoff):
     #we choose a dataframe, rather than doing any updating in this method, so that we can
     #parallelize it as desired
     bins_panda_spectra=valid_for_autocuration_test_wrapper(
-        database_address,
+        database_connection,
         [element[0] for element in bins_without_autocuration_non_zero_spectrum_count],
         'dot_product',
         0.015,
@@ -175,20 +175,20 @@ def guide_consensus_routine_generate(database_address,spectrum_cutoff):
     
     update_bins_with_spectra(
         bins_panda_spectra,
-        database_address
+        database_connection
     )
 
     bins_panda_mzrt=generate_mzrt_wrapper(
-        database_address,
+        database_connection,
         bins_without_autocuration_status
     )
 
     update_bins_with_mzrt(
         bins_panda_mzrt,
-        database_address
+        database_connection
     )
 
-def guide_consensus_routine_update(database_address,final_alignment_address,max_consensus_contributers):
+def guide_consensus_routine_update(database_connection,final_alignment_address,max_consensus_contributers):
     '''
     '''
     alignment_panda=pd.read_csv(final_alignment_address,sep='\t',skiprows=3)
@@ -210,9 +210,9 @@ def guide_consensus_routine_update(database_address,final_alignment_address,max_
         #frozen in time
         #so we proceed directly to clustering and consensussing
 
-        annotations_and_spectra=select_spectra_for_bin(database_address,temp_bin)
+        annotations_and_spectra=select_spectra_for_bin(database_connection,temp_bin)
 
-        update_member_of_consensus(database_address,temp_annotation_ids,0)
+        update_member_of_consensus(database_connection,temp_annotation_ids,0)
 
         
         #choose up to max_consensus_contributers randomly
@@ -229,7 +229,7 @@ def guide_consensus_routine_update(database_address,final_alignment_address,max_
         temp_spectra_paired_cleaned=get_cleaned_spectra(temp_spectra_paired,noise_level,ms2_tolerance)
 
 
-        update_member_of_consensus(database_address,temp_annotation_ids,1)
+        update_member_of_consensus(database_connection,temp_annotation_ids,1)
 
 
         cluster_assignments=perform_hierarchical_clustering_routine(temp_spectra_paired_cleaned,similarity_metric,ms2_tolerance,mutual_distance_for_cluster)
@@ -253,11 +253,11 @@ def guide_consensus_routine_update(database_address,final_alignment_address,max_
 
     update_bins_with_spectra(
         bins_panda_spectra,
-        database_address
+        database_connection
     )
 
     bins_panda_mzrt=generate_mzrt_wrapper(
-        database_address,
+        database_connection,
         bins_without_autocuration_status
     )
 
@@ -272,19 +272,23 @@ if __name__=="__main__":
     #generate or update
     #i would expect that update would be the choice if and only if
     #the database style the "main" database
-    consensus_style='update'
+    consensus_style='generate'
     max_consensus_contributers=500
 
 
     minimum_count_for_auto_curation_possible=20
-    to_transient_for_pycutter_pipeline=False
+    to_transient_for_pycutter_pipeline=True
     if to_transient_for_pycutter_pipeline==True:
         database_address="../../data/database/transient_bucketbase.db"
     elif to_transient_for_pycutter_pipeline==False:
         database_address="../../data/database/bucketbase.db"
 
+
+    database_engine=sqlalchemy.create_engine(f"sqlite:///{database_address}")
+    database_connection=database_engine.connect()
+
     if consensus_style=='generate':
-        guide_consensus_routine_generate(database_address,minimum_count_for_auto_curation_possible)
+        guide_consensus_routine_generate(database_connection,minimum_count_for_auto_curation_possible)
     elif consensus_style=='update':
         final_alignment_address='../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos_with_some_curations.txt'
-        guide_consensus_routine_update(database_address,final_alignment_address)
+        guide_consensus_routine_update(database_connection,final_alignment_address)
