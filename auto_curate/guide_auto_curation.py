@@ -295,13 +295,15 @@ def insert_autocurations_into_pycutter_input(pycutter_input,transient_database_a
     pycutter_input['english_name']=transient_database_auto_curated_as_df['top_match_english_name']
     pycutter_input['curation_text']=transient_database_auto_curated_as_df['matching_bins_text']
 
-    temp=pd.read_csv(pycutter_step_1_output_address,sep='\t',nrows=4)
-    temp.columns = temp.iloc[3]
-    temp.drop(list(range(4,temp.index.stop)),inplace=True,axis='index')
+    temp=pd.read_csv(pycutter_step_1_output_address,sep='\t',nrows=5,header=None)
+    print(temp)
+    print(temp.iloc[4])
+    temp.columns = temp.iloc[4]
+    temp.drop(list(range(5,temp.index.stop)),inplace=True,axis='index')
     inchikey_location=temp.columns.get_loc('Adduct type')
     for i in range(len(inserted_columns)-1,-1,-1):
         temp.insert(loc=inchikey_location+1,column=inserted_columns[i],value=np.nan)
-    temp.iloc[3]=temp.columns
+    temp.iloc[4]=temp.columns
     print(temp)
     print(pycutter_input)
     hold=input('just before conczt ')
@@ -367,5 +369,5 @@ if __name__=="__main__":
     #print(pycutter_input)
     final_result=insert_autocurations_into_pycutter_input(pycutter_input,transient_database_auto_curated_as_df,pycutter_autocurated_input_address,inserted_columns)
     final_result.to_csv(pycutter_autocurated_output_address,sep='\t',index=False,header=False)
-    print(final_result.columns)
+    print(final_result)
     #we now need to merge the autocurated transient DB panda with the pycutter input panda
