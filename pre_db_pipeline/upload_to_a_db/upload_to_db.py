@@ -12,8 +12,8 @@ def upload_table_to_db(temp_panda,table_name):
         con=engine,
         if_exists='append',
         index=False,
-        chunksize=5000,
-        method='multi'
+        #chunksize=5000,
+        #method='multi'
     )
 
     #connection.close()
@@ -31,7 +31,7 @@ if __name__=="__main__":
     and that is taken advantage of when making the annotation panda
     '''
 
-    to_transient_for_pycutter_pipeline=True
+    to_transient_for_pycutter_pipeline=False
     ion_mode='pos'
     if to_transient_for_pycutter_pipeline==True:
         database_address="../../../data/database/transient_bucketbase.db"
@@ -40,7 +40,8 @@ if __name__=="__main__":
         individual_files_directory='../../../data/three_studies/individual_sample_data_subset/unzipped/BRYU005_Bacterial_Supernatant/pos/'
     elif to_transient_for_pycutter_pipeline==False:
         database_address="../../../data/database/bucketbase.db"
-        final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos.txt'
+        #final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos.txt'
+        final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/py_cutter_step_2_output_auto_curated.tsv'
         database_address='../../../data/database/bucketbase.db'
         mapping_file_address='../../../data/three_studies/alignment_individual_mappings/BRYU005_pos_mapping.txt'
         individual_files_directory='../../../data/three_studies/individual_sample_data_subset/unzipped/BRYU005_Bacterial_Supernatant/pos/'    

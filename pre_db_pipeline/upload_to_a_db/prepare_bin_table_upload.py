@@ -70,21 +70,34 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
         axis='columns'
     )
     
+    print(alignment_panda)
+    hold=input('alignment panda')
+
     #strip all whitespaces
+    #print(alignment_panda[alignment_panda.columns[1]])
     [alignment_panda[temp_col].apply(str.strip) for temp_col in alignment_panda.columns if alignment_panda[temp_col].dtype==str]
+    #[print(alignment_panda[temp_col]) for temp_col in alignment_panda.columns]
+    
+    
+
 
     bin_panda=alignment_panda.loc[
-        alignment_panda.bin_id.isna()==True,
+        alignment_panda.bin_id.astype(str).str.isdigit()==False,
         [
             'bin_id','inchikey','adduct','english_name',
             'comment','polarity'
         ]
     ]
+    bin_panda.reset_index(inplace=True,drop=True)
+    print(bin_panda)
+    hold=input('see above bin panda')
+
+    print(find_lowest_bin(database_address))
 
     #still need to make the is_known and is_istd columns
     #the bin_id column is there but is full of nan (yum!)
     bin_id_list=list(range(
-        1+find_lowest_bin(database_address),len(bin_panda.index)
+        1+find_lowest_bin(database_address),(1+find_lowest_bin(database_address)+len(bin_panda.index))
     ))
     is_istd_list=[
         1 if (x=='Internal Standard') else 0 for x in bin_panda.inchikey.tolist()
@@ -120,6 +133,12 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
     bin_panda['consensus_mz']=consensus_mz
     bin_panda['consensus_spectrum']=consensus_spectrum
     bin_panda['mzrt_only']=mzrt_only
+
+
+    print(bin_panda)
+    hold=input('verify bin panda')
+
+
 
     return bin_panda
 

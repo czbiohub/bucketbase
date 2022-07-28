@@ -37,13 +37,74 @@ def find_lowest_annotation(database_address):
 def get_alignment_id_bin_id_map(alignment_panda,bin_panda):
     '''
     returns a panda with one column alignment_id and one column bin_id
-    if we assume that every row in the alignment panda is kept, then we just select the correct
-    column from each
-    '''
-    alignment_id_bin_id_panda=alignment_panda['alignment_id'].copy().to_frame()
-    alignment_id_bin_id_panda['bin_id']=bin_panda['bin_id'].copy()
 
-    return alignment_id_bin_id_panda
+    '''
+    
+    #alignment_id_bin_id_panda=alignment_panda['alignment_id'].copy().to_frame()
+    #alignment_id_bin_id_panda['bin_id']='junk'
+    alignment_id_bin_id_panda=alignment_panda.loc[
+        alignment_panda.bin_id.astype(str).str.isdigit()==False,
+        [
+            'alignment_id',
+        ]
+    ].copy()
+    alignment_id_bin_id_panda.reset_index(inplace=True,drop=True)
+
+    alignment_id_bin_id_panda['bin_id']=bin_panda['bin_id']
+    print(alignment_panda)
+    print(alignment_id_bin_id_panda)
+
+
+    alignment_id_bin_id_panda_2=alignment_panda.loc[
+        alignment_panda.bin_id.astype(str).str.isdigit()==True,
+        [
+            'alignment_id','bin_id'
+        ]
+    ].copy()
+    alignment_id_bin_id_panda_2.reset_index(inplace=True,drop=True)
+
+    print(alignment_id_bin_id_panda_2)
+    # alignment_id_bin_id_panda=alignment_id_bin_id_panda.loc[
+    #     :,
+    #     ['alignment_id','bin_id']
+    # ]
+
+    # alignment_id_bin_id_panda=alignment_id_bin_id_panda.merge(
+    #     bin_panda,
+    #     how='inner',
+    #     left_on='alignment_id',
+    #     right_on='alignment_id'
+    # )
+
+    # print(alignment_panda)
+    # print(bin_panda)
+    # print(bin_panda.columns)
+
+    # alignment_id_bin_id_panda=alignment_id_bin_id_panda.merge(
+    #     bin_panda,
+    #     how='inner',
+    #     left_on='alignment_id',
+    #     right_on='alignment_id'
+    # )
+    
+    # #bin_panda['bin_id'].copy()
+    # print(alignment_id_bin_id_panda)
+
+    # temp=bin_panda_already_binned=alignment_panda.loc[
+    #     alignment_panda.bin_id.astype(str).str.isdigit()==True,
+    #     [
+    #         'bin_id','inchikey','adduct','english_name',
+    #         'comment','polarity'
+    #     ]
+    # ]
+    total_alignment_id_bin_id_panda=pd.concat(
+        [alignment_id_bin_id_panda,alignment_id_bin_id_panda_2],
+        axis='index',
+        ignore_index=True
+    )
+    print('assessing alignment id bin id panda')
+    hold=input('hold')
+    return total_alignment_id_bin_id_panda
 
 def clean_mapping_panda(mapping_panda,alignment_id_bin_id_panda):
     '''

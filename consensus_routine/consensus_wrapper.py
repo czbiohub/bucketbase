@@ -5,6 +5,7 @@ sys.path.insert(0, '../utils/')
 from utils import execute_query_connection_established
 from valid_for_autocuration_test import *
 from generate_mzrt_consensus import *
+import random
 
 def aquire_bin_ids_without_autocuration_status(database_connection):
     query='''
@@ -77,8 +78,7 @@ def set_autocurate_valid(bins,value):
     execute_query_connection_established(database_connection,query,returns_rows=False)
 
 def update_bins_with_spectra(
-    dataframe,
-    database_connection
+    dataframe
 ):
     values_text_list='('+dataframe.bin_id.astype(str)+', '+dataframe.valid_for_autocuration.astype(str)+', \''+dataframe.consensus_spectrum+'\')'
     values_text=',\n'.join(values_text_list.values)
@@ -92,24 +92,28 @@ def update_bins_with_spectra(
     from (values
     '''+values_text+'''
     )as temp_table
-    where bins.bin_id=temp_table.column1'''
+    where bin_id=temp_table.column1'''
 
-    engine=sqlalchemy.create_engine(f"sqlite:///{database_connection}")
-    connection=engine.connect()
+    execute_query_connection_established(database_connection,query_string,returns_rows=False)
 
-    temp_cursor=connection.execute(query_string)
+    # engine=sqlalchemy.create_engine(f"sqlite:///{database_connection}")
+    # connection=engine.connect()
 
-    connection.close()
-    engine.dispose()
+    # temp_cursor=connection.execute(query_string)
+
+    # connection.close()
+    # engine.dispose()
 
 
 def update_bins_with_mzrt(
-    dataframe,
-    database_connection
+    dataframe
 ):
     values_text_list='('+dataframe.bin_id.astype(str)+', '+dataframe.consensus_mz.astype(str)+', '+dataframe.consensus_rt.astype(str)+')'
     values_text=',\n'.join(values_text_list.values)
     print(values_text)
+    # print('-----------------------------------------')
+    # print(database_connection)
+    
 
     #for the life of me, i tried to rename the columns in temp table. could not get the syntax to work
     query_string='''
@@ -119,15 +123,18 @@ def update_bins_with_mzrt(
     from (values
     '''+values_text+'''
     )as temp_table
-    where bins.bin_id=temp_table.column1'''
+    where bin_id=temp_table.column1'''
 
-    engine=sqlalchemy.create_engine(f"sqlite:///{database_connection}")
-    connection=engine.connect()
 
-    temp_cursor=connection.execute(query_string)
+    execute_query_connection_established(database_connection,query_string,returns_rows=False)
+    #hold=input('inspect db connect')
+    # engine=sqlalchemy.create_engine(f"sqlite:///{database_connection}")
+    # connection=engine.connect()
 
-    connection.close()
-    engine.dispose()
+    # temp_cursor=connection.execute(query_string)
+
+    # connection.close()
+    # engine.dispose()
 
 def guide_consensus_routine_generate(database_connection,spectrum_cutoff):
     
@@ -174,8 +181,7 @@ def guide_consensus_routine_generate(database_connection,spectrum_cutoff):
     ######################################################################################
     
     update_bins_with_spectra(
-        bins_panda_spectra,
-        database_connection
+        bins_panda_spectra
     )
 
     bins_panda_mzrt=generate_mzrt_wrapper(
@@ -184,20 +190,23 @@ def guide_consensus_routine_generate(database_connection,spectrum_cutoff):
     )
 
     update_bins_with_mzrt(
-        bins_panda_mzrt,
-        database_connection
+        bins_panda_mzrt
     )
 
-def guide_consensus_routine_update(database_connection,final_alignment_address,max_consensus_contributers):
+def guide_consensus_routine_update(database_connection,final_alignment_address,max_consensus_contributers,
+noise_level,ms2_tolerance,similarity_metric,mutual_distance_for_cluster,minimum_percent_present,bin_space_tolerance):
     '''
     '''
     alignment_panda=pd.read_csv(final_alignment_address,sep='\t',skiprows=3)
-    bins_for_updating=alignment_panda['bin_id'].loc[alignment_panda['bin_id'].notna()].astype(int).to_list()
+    bins_for_updating=alignment_panda['bin_id'].loc[
+        #alignment_panda['bin_id'].notna()
+            alignment_panda.bin_id.astype(str).str.isdigit()==True
+        ].astype(int).to_list()
     print(bins_for_updating)
 
     result_dict={
         'bin_id':[],
-        'valid_for_autocuratin':[],
+        'valid_for_autocuration':[],
         'consensus_spectrum':[]
     }
 
@@ -210,7 +219,19 @@ def guide_consensus_routine_update(database_connection,final_alignment_address,m
         #frozen in time
         #so we proceed directly to clustering and consensussing
 
+
         annotations_and_spectra=select_spectra_for_bin(database_connection,temp_bin)
+
+        # query='select * from bins limit 10'
+        # junk_test=execute_query_connection_established(database_connection,query)
+        # print(junk_test)
+        # hold=input('junk test')
+
+        temp_annotation_ids=[element[0] for element in annotations_and_spectra]
+        temp_spectra_text=[element[1] for element in annotations_and_spectra]
+
+        print(len(temp_annotation_ids))
+        print('temp annotations ids length')
 
         update_member_of_consensus(database_connection,temp_annotation_ids,0)
 
@@ -222,8 +243,7 @@ def guide_consensus_routine_update(database_connection,final_alignment_address,m
             random.shuffle(annotations_and_spectra)
             annotations_and_spectra=annotations_and_spectra[0:max_consensus_contributers]
 
-        temp_annotation_ids=[element[0] for element in annotations_and_spectra]
-        temp_spectra_text=[element[1] for element in annotations_and_spectra]
+
         print(f'{len(temp_spectra_text)} spectra') #len(temp_spectra_text))
         temp_spectra_paired=parse_text_spectra_return_pairs(temp_spectra_text)
         temp_spectra_paired_cleaned=get_cleaned_spectra(temp_spectra_paired,noise_level,ms2_tolerance)
@@ -252,18 +272,16 @@ def guide_consensus_routine_update(database_connection,final_alignment_address,m
     bins_panda_spectra=pd.DataFrame.from_dict(result_dict)
 
     update_bins_with_spectra(
-        bins_panda_spectra,
-        database_connection
+        bins_panda_spectra
     )
 
     bins_panda_mzrt=generate_mzrt_wrapper(
         database_connection,
-        bins_without_autocuration_status
+        bins_for_updating
     )
 
     update_bins_with_mzrt(
-        bins_panda_mzrt,
-        bins_for_updating
+        bins_panda_mzrt
     )
 
 
@@ -272,12 +290,21 @@ if __name__=="__main__":
     #generate or update
     #i would expect that update would be the choice if and only if
     #the database style the "main" database
-    consensus_style='generate'
+    
+    consensus_style='update'
+    #consensus_style='generate'
     max_consensus_contributers=500
+
+    noise_level=0.03
+    ms2_tolerance=0.015
+    similarity_metric='dot_product'
+    mutual_distance_for_cluster=0.2
+    minimum_percent_present=0.3
+    bin_space_tolerance=3
 
 
     minimum_count_for_auto_curation_possible=20
-    to_transient_for_pycutter_pipeline=True
+    to_transient_for_pycutter_pipeline=False
     if to_transient_for_pycutter_pipeline==True:
         database_address="../../data/database/transient_bucketbase.db"
     elif to_transient_for_pycutter_pipeline==False:
@@ -287,8 +314,11 @@ if __name__=="__main__":
     database_engine=sqlalchemy.create_engine(f"sqlite:///{database_address}")
     database_connection=database_engine.connect()
 
+    
+
     if consensus_style=='generate':
         guide_consensus_routine_generate(database_connection,minimum_count_for_auto_curation_possible)
     elif consensus_style=='update':
-        final_alignment_address='../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos_with_some_curations.txt'
-        guide_consensus_routine_update(database_connection,final_alignment_address)
+        final_alignment_address='../../data/BRYU005_pipeline_test/step_2_final_alignment/py_cutter_step_2_output_auto_curated.tsv'
+        guide_consensus_routine_update(database_connection,final_alignment_address,max_consensus_contributers,
+        noise_level,ms2_tolerance,similarity_metric,mutual_distance_for_cluster,minimum_percent_present,bin_space_tolerance)

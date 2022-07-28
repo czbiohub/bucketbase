@@ -299,13 +299,22 @@ def insert_autocurations_into_pycutter_input(pycutter_input,transient_database_a
     print(temp)
     print(temp.iloc[4])
     temp.columns = temp.iloc[4]
+    
+    
+    pycutter_input.rename({'english_name':'english_name_top_match'},axis='columns',inplace=True)
+    
     temp.drop(list(range(5,temp.index.stop)),inplace=True,axis='index')
     inchikey_location=temp.columns.get_loc('Adduct type')
     for i in range(len(inserted_columns)-1,-1,-1):
         temp.insert(loc=inchikey_location+1,column=inserted_columns[i],value=np.nan)
+    temp.rename({'english_name':'english_name_top_match'},axis='columns',inplace=True)
     temp.iloc[4]=temp.columns
-    print(temp)
-    print(pycutter_input)
+    # print(temp.english_name)
+    # print(pycutter_input.english_name)
+    # print(temp.english_name_top_match)
+    # print(pycutter_input.english_name_top_match)
+    print(temp.columns)
+    print(pycutter_input.columns)
     hold=input('just before conczt ')
     final_result=pd.concat([temp,pycutter_input],axis='index',ignore_index=True)
 
@@ -313,13 +322,14 @@ def insert_autocurations_into_pycutter_input(pycutter_input,transient_database_a
 
 if __name__=="__main__":
 
+    pd.options.display.max_seq_items = 500
+
     ion_mode='pos'
     weight_of_dot_product=0.5
     weight_of_reverse_dot_product=0.5
     mz_tolerance=0.01
     rt_tolerance=1
     ms2_tolerance=0.015
-
 
     transient_database_address='../../data/database/transient_bucketbase.db'
     database_address='../../data/database/bucketbase.db'
