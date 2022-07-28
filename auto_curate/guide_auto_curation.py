@@ -68,6 +68,9 @@ def select_candidate_bins(
 
     query=f'''PRAGMA table_info(bins)'''
     bins_column_reply=execute_query_connection_established(a_database_connection,query)
+    #print(a_database_connection)
+    #print(bins_column_reply)
+    #print('-'*50)
     bin_columns=[element[1] for element in bins_column_reply]
 
     mz_min=transient_mz-mz_tolerance
@@ -121,6 +124,7 @@ def autocurate_transient_bins(
     for row,series in transient_bins_panda.iterrows():
         english_name=series['english_name']
         transient_bin_id=series['bin_id']
+        print('\n\n')
         print(f'we are trying to curate {english_name} which has transient bin_id {transient_bin_id}') 
         if series['valid_for_autocuration']==0:
             print('it is not valid for autocuration, so we continue')
@@ -141,7 +145,7 @@ def autocurate_transient_bins(
         )
         english_name=series['english_name']
         transient_bin_id=series['bin_id']
-        print(f'we are trying to curate {english_name} which has transient bin_id {transient_bin_id}')
+        #print(f'we are trying to curate {english_name} which has transient bin_id {transient_bin_id}')
 
         # candidates_bins_df['dot_product']=cadidates_bin_df.apply(
         #     get_dot_product_of_largest_clusters,axis=1
@@ -171,7 +175,7 @@ def autocurate_transient_bins(
             
             print('we found:')
             print(candidate_bins_df)
-            print(candidate_bins_df.columns)
+            #print(candidate_bins_df.columns)
             #hold=input('hold')
 
             transient_bins_panda.at[transient_bin_id,'top_match_bin_id']=candidate_bins_df.at[0,'bin_id']
@@ -296,8 +300,8 @@ def insert_autocurations_into_pycutter_input(pycutter_input,transient_database_a
     pycutter_input['curation_text']=transient_database_auto_curated_as_df['matching_bins_text']
 
     temp=pd.read_csv(pycutter_step_1_output_address,sep='\t',nrows=5,header=None)
-    print(temp)
-    print(temp.iloc[4])
+    #print(temp)
+    #print(temp.iloc[4])
     temp.columns = temp.iloc[4]
     
     
@@ -313,16 +317,16 @@ def insert_autocurations_into_pycutter_input(pycutter_input,transient_database_a
     # print(pycutter_input.english_name)
     # print(temp.english_name_top_match)
     # print(pycutter_input.english_name_top_match)
-    print(temp.columns)
-    print(pycutter_input.columns)
-    hold=input('just before conczt ')
+    #print(temp.columns)
+    #print(pycutter_input.columns)
+    #hold=input('just before conczt ')
     final_result=pd.concat([temp,pycutter_input],axis='index',ignore_index=True)
 
     return final_result
 
 if __name__=="__main__":
 
-    pd.options.display.max_seq_items = 500
+    #pd.options.display.max_seq_items = 500
 
     ion_mode='pos'
     weight_of_dot_product=0.5
@@ -344,7 +348,7 @@ if __name__=="__main__":
     #print(list(range(0,pycutter_input.index.stop)))
     pycutter_input['bin_id']=list(range(0,pycutter_input.index.stop))
     print(pycutter_input.columns)
-    hold=input('just after read in')
+    #hold=input('just after read in')
 
     transient_engine=sqlalchemy.create_engine(f"sqlite:///{transient_database_address}")
     transient_connection=transient_engine.connect()
@@ -366,7 +370,7 @@ if __name__=="__main__":
 
     print(transient_database_auto_curated_as_df)
     print(pycutter_input.columns)
-    hold=input('hold')
+    #hold=input('hold')
 
     #print(transient_database_auto_curated_as_df)
     

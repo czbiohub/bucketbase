@@ -6,6 +6,7 @@ from utils import execute_query_connection_established
 from valid_for_autocuration_test import *
 from generate_mzrt_consensus import *
 import random
+import sys
 
 def aquire_bin_ids_without_autocuration_status(database_connection):
     query='''
@@ -242,6 +243,8 @@ noise_level,ms2_tolerance,similarity_metric,mutual_distance_for_cluster,minimum_
         if len(annotations_and_spectra)>max_consensus_contributers:
             random.shuffle(annotations_and_spectra)
             annotations_and_spectra=annotations_and_spectra[0:max_consensus_contributers]
+            temp_annotation_ids=[element[0] for element in annotations_and_spectra]
+            temp_spectra_text=[element[1] for element in annotations_and_spectra]
 
 
         print(f'{len(temp_spectra_text)} spectra') #len(temp_spectra_text))
@@ -291,7 +294,11 @@ if __name__=="__main__":
     #i would expect that update would be the choice if and only if
     #the database style the "main" database
     
-    consensus_style='update'
+    to_transient_for_pycutter_pipeline=sys.argv[1]
+    consensus_style=sys.argv[2]
+    
+
+
     #consensus_style='generate'
     max_consensus_contributers=500
 
@@ -304,10 +311,10 @@ if __name__=="__main__":
 
 
     minimum_count_for_auto_curation_possible=20
-    to_transient_for_pycutter_pipeline=False
-    if to_transient_for_pycutter_pipeline==True:
+
+    if to_transient_for_pycutter_pipeline=='transient':
         database_address="../../data/database/transient_bucketbase.db"
-    elif to_transient_for_pycutter_pipeline==False:
+    elif to_transient_for_pycutter_pipeline=='main':
         database_address="../../data/database/bucketbase.db"
 
 

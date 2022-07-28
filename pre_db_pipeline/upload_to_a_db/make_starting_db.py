@@ -1,6 +1,7 @@
 #import sqlite3
 #from sqlite3 import Error
 import sqlalchemy
+import sys
 
 
 # def create_database(database_address):
@@ -23,10 +24,12 @@ def create_connection(database_address):
 
 if __name__ =="__main__":
 
-    to_transient_for_pycutter_pipeline=True
-    if to_transient_for_pycutter_pipeline==True:
+    to_transient_for_pycutter_pipeline=sys.argv[1]
+
+    #to_transient_for_pycutter_pipeline=True
+    if to_transient_for_pycutter_pipeline=='transient':
         my_database_location="../../../data/database/transient_bucketbase.db"
-    elif to_transient_for_pycutter_pipeline==False:
+    elif to_transient_for_pycutter_pipeline=='main':
         my_database_location="../../../data/database/bucketbase.db"
     
     db_type='sqlite'

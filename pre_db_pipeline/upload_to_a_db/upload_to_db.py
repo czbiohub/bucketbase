@@ -1,6 +1,7 @@
 from prepare_bin_table_upload import *
 from prepare_run_table_upload import *
 from prepare_annotation_table_upload import *
+import sys
 
 def upload_table_to_db(temp_panda,table_name):
 
@@ -31,14 +32,14 @@ if __name__=="__main__":
     and that is taken advantage of when making the annotation panda
     '''
 
-    to_transient_for_pycutter_pipeline=False
-    ion_mode='pos'
-    if to_transient_for_pycutter_pipeline==True:
+    to_transient_for_pycutter_pipeline=sys.argv[1]
+    ion_mode=sys.argv[2]
+    if to_transient_for_pycutter_pipeline=='transient':
         database_address="../../../data/database/transient_bucketbase.db"
         final_alignment_address='../../../data/BRYU005_pipeline_test/step_1_post_pycutter/py_cutter_step_1_output.tsv'
         mapping_file_address='../../../data/three_studies/alignment_individual_mappings/BRYU005_pos_mapping.txt'
         individual_files_directory='../../../data/three_studies/individual_sample_data_subset/unzipped/BRYU005_Bacterial_Supernatant/pos/'
-    elif to_transient_for_pycutter_pipeline==False:
+    elif to_transient_for_pycutter_pipeline=='main':
         database_address="../../../data/database/bucketbase.db"
         #final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos.txt'
         final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/py_cutter_step_2_output_auto_curated.tsv'
@@ -48,11 +49,11 @@ if __name__=="__main__":
 
 
     #run_panda
-    if to_transient_for_pycutter_pipeline==True:
+    if to_transient_for_pycutter_pipeline=='transient':
         alignment_panda=pd.read_csv(
             final_alignment_address,sep='\t',nrows=5,header=None
         )
-    elif to_transient_for_pycutter_pipeline==False:
+    elif to_transient_for_pycutter_pipeline=='main':
         alignment_panda=pd.read_csv(
             final_alignment_address,sep='\t',nrows=4,header=None
         )    
@@ -62,10 +63,10 @@ if __name__=="__main__":
     )
 
     #bin_panda
-    if to_transient_for_pycutter_pipeline==True:
+    if to_transient_for_pycutter_pipeline=='transient':
         alignment_panda=pd.read_csv(final_alignment_address,sep='\t',skiprows=4)
         bin_panda_for_upload=create_bin_table_upload(alignment_panda,database_address,to_transient_for_pycutter_pipeline,ion_mode)
-    elif to_transient_for_pycutter_pipeline==False:
+    elif to_transient_for_pycutter_pipeline=='main':
         alignment_panda=pd.read_csv(final_alignment_address,sep='\t',skiprows=3)    
         bin_panda_for_upload=create_bin_table_upload(alignment_panda,database_address,to_transient_for_pycutter_pipeline)
     

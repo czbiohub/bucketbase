@@ -46,7 +46,7 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
     '''
 
 
-    if to_transient_for_pycutter_pipeline==True:
+    if to_transient_for_pycutter_pipeline=='transient':
         alignment_panda['bin_id']=np.nan
         alignment_panda['comment']='junk comment'
         alignment_panda['polarity']=ion_mode
@@ -56,7 +56,7 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
             'Metabolite name':'english_name',
             'Alignment ID':'alignment_id'
         }
-    elif to_transient_for_pycutter_pipeline==False:
+    elif to_transient_for_pycutter_pipeline=='main':
         column_swap_dict={
             'Alignment ID':'alignment_id',
             'Metabolite name':'english_name',	
@@ -71,7 +71,7 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
     )
     
     print(alignment_panda)
-    hold=input('alignment panda')
+    #hold=input('alignment panda')
 
     #strip all whitespaces
     #print(alignment_panda[alignment_panda.columns[1]])
@@ -90,7 +90,7 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
     ]
     bin_panda.reset_index(inplace=True,drop=True)
     print(bin_panda)
-    hold=input('see above bin panda')
+    #hold=input('see above bin panda')
 
     print(find_lowest_bin(database_address))
 
@@ -136,7 +136,7 @@ def create_bin_table_upload(alignment_panda,database_address,to_transient_for_py
 
 
     print(bin_panda)
-    hold=input('verify bin panda')
+    #hold=input('verify bin panda')
 
 
 

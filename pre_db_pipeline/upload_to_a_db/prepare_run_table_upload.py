@@ -31,7 +31,7 @@ def create_run_table_upload(alignment_panda,to_transient_for_pycutter_pipeline):
     #doesnt seem to affect things, so will ignore
     alignment_panda=alignment_panda.transpose()
 
-    if to_transient_for_pycutter_pipeline==True:
+    if to_transient_for_pycutter_pipeline=='transient':
         column_swap_dict={
             'Class':'irrelevant_1',
             'File type':'run_type', 
@@ -40,7 +40,7 @@ def create_run_table_upload(alignment_panda,to_transient_for_pycutter_pipeline):
             'MS/MS spectrum':'run_id'
         }       
 
-    elif to_transient_for_pycutter_pipeline==False:
+    elif to_transient_for_pycutter_pipeline=='main':
         column_swap_dict={
             'Class':'class',
             'Sample Type':'run_type', 

@@ -103,7 +103,7 @@ def get_alignment_id_bin_id_map(alignment_panda,bin_panda):
         ignore_index=True
     )
     print('assessing alignment id bin id panda')
-    hold=input('hold')
+    #hold=input('hold')
     return total_alignment_id_bin_id_panda
 
 def clean_mapping_panda(mapping_panda,alignment_id_bin_id_panda):
