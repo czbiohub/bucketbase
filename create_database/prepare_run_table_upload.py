@@ -67,6 +67,10 @@ def create_run_table_upload(alignment_panda,to_transient_for_pycutter_pipeline):
     run_panda['method_id']='my_dummy_method_id'
     run_panda['sample_des_id']='my_dummy_sample_des_id'
 
+    if to_transient_for_pycutter_pipeline=='transient':
+        # had an issue where the columns Feature Type	Feature Index were getting interpreted as run ID
+        run_panda.drop(run_panda.tail(2).index, inplace=True)
+
     return run_panda
 
 if __name__=="__main__":

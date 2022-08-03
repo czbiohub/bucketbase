@@ -32,21 +32,20 @@ if __name__=="__main__":
     and that is taken advantage of when making the annotation panda
     '''
 
-    to_transient_for_pycutter_pipeline=sys.argv[1]
-    ion_mode=sys.argv[2]
-    if to_transient_for_pycutter_pipeline=='transient':
-        database_address="../../../data/database/transient_bucketbase.db"
-        final_alignment_address='../../../data/BRYU005_pipeline_test/step_1_post_pycutter/py_cutter_step_1_output.tsv'
-        mapping_file_address='../../../data/three_studies/alignment_individual_mappings/BRYU005_pos_mapping.txt'
-        individual_files_directory='../../../data/three_studies/individual_sample_data_subset/unzipped/BRYU005_Bacterial_Supernatant/pos/'
-    elif to_transient_for_pycutter_pipeline=='main':
-        database_address="../../../data/database/bucketbase.db"
-        #final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/BRYU005_CombineSubmit_June2022_pos.txt'
-        final_alignment_address='../../../data/BRYU005_pipeline_test/step_2_final_alignment/py_cutter_step_2_output_auto_curated.tsv'
-        database_address='../../../data/database/bucketbase.db'
-        mapping_file_address='../../../data/three_studies/alignment_individual_mappings/BRYU005_pos_mapping.txt'
-        individual_files_directory='../../../data/three_studies/individual_sample_data_subset/unzipped/BRYU005_Bacterial_Supernatant/pos/'    
+    study_name=sys.argv[1]
+    to_transient_for_pycutter_pipeline=sys.argv[2]
+    ion_mode=sys.argv[3]
 
+
+    
+    mapping_file_address=f'../data/{study_name}/input/{ion_mode}/{study_name}_{ion_mode}_mapping.txt'
+    individual_files_directory=f'../data/{study_name}/input/{ion_mode}/individual_files/'
+
+    if to_transient_for_pycutter_pipeline=='transient':
+        final_alignment_address=f'../data/{study_name}/intermediates/step_1_post_pycutter/pycutter_step_1_output_{ion_mode}.tsv'
+        database_address=f"../data/{study_name}/database/{to_transient_for_pycutter_pipeline}_bucketbase.db"
+    elif to_transient_for_pycutter_pipeline=='main':
+        final_alignment_address=''
 
     #run_panda
     if to_transient_for_pycutter_pipeline=='transient':
